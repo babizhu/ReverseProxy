@@ -116,7 +116,6 @@ class ConnectionFlow(private val clientConnection: ClientToProxyConnection,
      * Does the work of processing the current step, checking the result and
      * handling success/failure.
      *
-     * @param LOG
      */
     private fun doProcessCurrentStep() {
         currentStep?.execute()?.addListener(
@@ -152,25 +151,7 @@ class ConnectionFlow(private val clientConnection: ClientToProxyConnection,
      */
     private fun fail(cause: Throwable) {
         val lastStateBeforeFailure = serverConnection.currentState
-//        serverConnection.disconnect()?.addListener(
-//                {
-//                    @Throws(Exception::class)
-//                    fun operationComplete(future: Future<*>) {
-//                        synchronized(connectLock) {
-//                            if (!clientConnection.serverConnectionFailed(
-//                                            serverConnection,
-//                                            lastStateBeforeFailure,
-//                                            cause)) {
-//                                // the connection to the server failed and we are not retrying, so transition to the
-//                                // DISCONNECTED state
-//                                serverConnection.become(ConnectionState.DISCONNECTED)
-//
-//                                // We are not retrying our connection, let anyone waiting for a connection know that we're done
-//                                notifyThreadsWaitingForConnection()
-//                            }
-//                        }
-//                    }
-//                })
+
         serverConnection.disconnect()?.addListener {
             synchronized(connectLock) {
                 if (!clientConnection.serverConnectionFailed(

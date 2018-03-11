@@ -75,6 +75,7 @@ abstract class ProxyConnection<in I : HttpObject>(
     @Throws(Exception::class)
     override fun channelInactive(ctx: ChannelHandlerContext) {
         try {
+            LOG.error("channelInactive:{}",this.channel)
             disconnected()
         } finally {
             super.channelInactive(ctx)
@@ -257,7 +258,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      * [Channel] is connected doesn't mean that our connection is fully
      * established.
      */
-    protected fun connected() {
+    private fun connected() {
         LOG.debug("Connected")
     }
 
@@ -265,7 +266,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      * This method is called as soon as the underlying [Channel] becomes
      * disconnected.
      */
-    protected fun disconnected() {
+    private fun disconnected() {
         become(ConnectionState.DISCONNECTED)
         LOG.debug("Disconnected")
     }
@@ -275,13 +276,14 @@ abstract class ProxyConnection<in I : HttpObject>(
      * to an idle timeout.
      */
     protected fun timedOut() {
+        LOG.error("timeout{}",this.channel)
         disconnect()
     }
 
     /**
      * Callback that's invoked if this connection becomes saturated.
      */
-    protected fun becameSaturated() {
+    private fun becameSaturated() {
         LOG.debug("Became saturated")
     }
 

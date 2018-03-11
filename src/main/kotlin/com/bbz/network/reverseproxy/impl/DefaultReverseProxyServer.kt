@@ -180,7 +180,7 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
 //    private var mitmManager: MitmManager? = null
 //    private var filtersSource: HttpFiltersSource = HttpFiltersSourceAdapter()
 //    private var transparent = false
-        private var idleConnectionTimeout = 5
+        private var idleConnectionTimeout = 70
         //    private val activityTrackers = ConcurrentLinkedQueue<ActivityTracker>()
         private var connectTimeout = 40000
         //    private var serverResolver: HostResolver = DefaultHostResolver()

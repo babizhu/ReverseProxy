@@ -37,10 +37,11 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 
 //        pipeline.addLast("bytesReadMonitor", bytesReadMonitor)
 //        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor)
-//        pipeline.addLast(object :ChannelInboundHandlerAdapter(){
+//        pipeline.addLast(object : ChannelInboundHandlerAdapter(){
 //            override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
 //                var prettyHexDump = ByteBufUtil.prettyHexDump(msg as ByteBuf)
-//                println(prettyHexDump)
+//
+//                LOG.error("{}---{}",this@ClientToProxyConnection.channel,prettyHexDump)
 //                super.channelRead(ctx, msg)
 //            }
 //
@@ -54,19 +55,6 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
                 proxyServer.maxInitialLineLength,
                 proxyServer.maxHeaderSize,
                 proxyServer.maxChunkSize))
-
-        // Enable aggregation for filtering if necessary
-//        val numberOfBytesToBuffer = proxyServer.getFiltersSource()
-//                .getMaximumRequestBufferSizeInBytes()
-//        if (numberOfBytesToBuffer > 0) {
-//            aggregateContentForFiltering(pipeline, numberOfBytesToBuffer)
-//        }
-
-//        aggregateContentForFiltering(pipeline, numberOfBytesToBuffer)
-
-//        pipeline.addLast("requestReadMonitor", requestReadMonitor)
-//        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor)
-
         pipeline.addLast(
                 "idle",
                 IdleStateHandler(0, 0, proxyServer
@@ -105,7 +93,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun readHTTPInitial(httpObject: HttpRequest): ConnectionState {
-        LOG.debug("Received raw request: {}", httpObject)
+        LOG.error("{}- Received raw request: {}", this.channel, httpObject.uri())
 
         // if we cannot parse the request, immediately return a 400 and close the connection, since we do not know what state
         // the client thinks the connection is in
@@ -125,83 +113,10 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
         return doReadHTTPInitial(httpObject)
 
     }
-
-    override fun exceptionCaught(cause: Throwable) {
-        try {
-            when (cause) {
-                is IOException -> {
-                    // IOExceptions are expected errors, for example when a browser is killed and aborts a connection.
-                    // rather than flood the logs with stack traces for these expected exceptions, we log the message at the
-                    // INFO level and the stack trace at the DEBUG level.
-                    LOG.info("An IOException occurred on ClientToProxyConnection: " + cause.message)
-                    LOG.debug("An IOException occurred on ClientToProxyConnection", cause)
-                }
-                is RejectedExecutionException -> {
-                    LOG.info("An executor rejected a read or write operation on the ClientToProxyConnection (this is normal if the proxy is shutting down). Message: " + cause.message)
-                    LOG.debug("A RejectedExecutionException occurred on ClientToProxyConnection", cause)
-                }
-                else -> LOG.error("Caught an exception on ClientToProxyConnection", cause)
-            }
-        } finally {
-            // always disconnect the client when an exception occurs on the channel
-            disconnect()
-        }
-    }
-
-
-    /**
-     * Responds to the client with the specified "short-circuit" response. The response will be sent through the
-     * {@link HttpFilters#proxyToClientResponse(HttpObject)} filter method before writing it to the client. The client
-     * will not be disconnected, unless the response includes a "Connection: close" header, or the filter returns
-     * a null HttpResponse (in which case no response will be written to the client and the connection will be
-     * disconnected immediately). If the response is not a Bad Gateway or Gateway Timeout response, the response's headers
-     * will be modified to reflect proxying, including adding a Via header, Date header, etc.
-     *
-     * @param httpResponse the response to return to the client
-     * @return true if the connection will be kept open, or false if it will be disconnected.
-     */
-    private fun respondWithShortCircuitResponse(httpResponse: HttpResponse): Boolean {
-        // we are sending a response to the client, so we are done handling this request
-        this.currentRequest = null
-
-//        HttpResponse filteredResponse = (HttpResponse) currentFilters.proxyToClientResponse(httpResponse);
-//        if (filteredResponse == null) {
-//            disconnect();
-//            return false;
-//        }
-
-        // allow short-circuit messages to close the connection. normally the Connection header would be stripped when modifying
-        // the message for proxying, so save the keep-alive status before the modifications are made.
-        val isKeepAlive = HttpUtil.isKeepAlive(httpResponse)
-
-        // if the response is not a Bad Gateway or Gateway Timeout, modify the headers "as if" the short-circuit response were proxied
-        val statusCode = httpResponse.status().code()
-        if (statusCode != HttpResponseStatus.BAD_GATEWAY.code() && statusCode != HttpResponseStatus.GATEWAY_TIMEOUT.code()) {
-            modifyResponseHeadersToReflectProxying(httpResponse)
-        }
-
-        // restore the keep alive status, if it was overwritten when modifying headers for proxying
-//        HttpHeaders.setKeepAlive(httpResponse, isKeepAlive);
-        HttpUtil.setKeepAlive(httpResponse, isKeepAlive)
-
-        write(httpResponse)
-
-        if (ProxyUtils.isLastChunk(httpResponse)) {
-            writeEmptyBuffer()
-        }
-
-        if (!HttpUtil.isKeepAlive(httpResponse)) {
-            disconnect()
-            return false
-        }
-
-        return true
-    }
-
     private fun doReadHTTPInitial(httpRequest: HttpRequest): ConnectionState {
         // Make a copy of the original request
         this.currentRequest = copy(httpRequest)
-        val serverHostAndPort = "localhost:9000"
+        val serverHostAndPort = "localhost:8081"//nginx server
 
         if (currentServerConnection == null) {
 
@@ -226,35 +141,65 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
             ConnectionState.AWAITING_INITIAL
         }
     }
+    override fun exceptionCaught(cause: Throwable) {
+        try {
+            when (cause) {
+                is IOException -> {
+                    // IOExceptions are expected errors, for example when a browser is killed and aborts a connection.
+                    // rather than flood the logs with stack traces for these expected exceptions, we log the message at the
+                    // INFO level and the stack trace at the DEBUG level.
+                    LOG.info("An IOException occurred on ClientToProxyConnection: " + cause.message)
+                    LOG.debug("An IOException occurred on ClientToProxyConnection", cause)
+                }
+                is RejectedExecutionException -> {
+                    LOG.info("An executor rejected a read or write operation on the ClientToProxyConnection (this is normal if the proxy is shutting down). Message: " + cause.message)
+                    LOG.debug("A RejectedExecutionException occurred on ClientToProxyConnection", cause)
+                }
+                else -> LOG.error("Caught an exception on ClientToProxyConnection", cause)
+            }
+        } finally {
+            // always disconnect the client when an exception occurs on the channel
+            disconnect()
+        }
+    }
 
 
     /**
-     * If and only if our proxy is not running in transparent mode, modify the
-     * response headers to reflect that it was proxied.
+     * Responds to the client with the specified "short-circuit" response.
      *
-     * @param httpResponse
-     * @return
+     * @param httpResponse the response to return to the client
+     * @return true if the connection will be kept open, or false if it will be disconnected.
      */
-    private fun modifyResponseHeadersToReflectProxying(httpResponse: HttpResponse) {
-//        if (!proxyServer.isTransparent()) {
-//            val headers = httpResponse.headers()
-//
-//            stripConnectionTokens(headers)
-//            stripHopByHopHeaders(headers)
-//            ProxyUtils.addVia(httpResponse, proxyServer.getProxyAlias())
-//
-//            /*
-//             * RFC2616 Section 14.18
-//             *
-//             * A received message that does not have a Date header field MUST be
-//             * assigned one by the recipient if the message will be cached by
-//             * that recipient or gatewayed via a protocol which requires a Date.
-//             */
-//            if (!headers.contains(HttpHeaders.Names.DATE)) {
-//                HttpHeaders.setDate(httpResponse, Date())
-//            }
+    private fun respondWithShortCircuitResponse(httpResponse: HttpResponse): Boolean {
+        // we are sending a response to the client, so we are done handling this request
+        this.currentRequest = null
+
+//        HttpResponse filteredResponse = (HttpResponse) currentFilters.proxyToClientResponse(httpResponse);
+//        if (filteredResponse == null) {
+//            disconnect();
+//            return false;
 //        }
+
+        // allow short-circuit messages to close the connection. normally the Connection header would be stripped when modifying
+        // the message for proxying, so save the keep-alive status before the modifications are made.
+        val isKeepAlive = HttpUtil.isKeepAlive(httpResponse)
+        HttpUtil.setKeepAlive(httpResponse, isKeepAlive)
+
+        write(httpResponse)
+
+        if (ProxyUtils.isLastChunk(httpResponse)) {
+            writeEmptyBuffer()
+        }
+
+        if (!HttpUtil.isKeepAlive(httpResponse)) {
+            disconnect()
+            return false
+        }
+
+        return true
     }
+
+
 
     private fun writeEmptyBuffer() {
         write(Unpooled.EMPTY_BUFFER)
@@ -311,7 +256,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
                                lastStateBeforeFailure: ConnectionState,
                                cause: Throwable): Boolean {
         resumeReadingIfNecessary()
-        val initialRequest = serverConnection.initialRequest
+//        val initialRequest = serverConnection.initialRequest
 //        try {
 //            val retrying = serverConnection.connectionFailed(cause)
 //            if (retrying) {
@@ -331,12 +276,12 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 //            connectionFailedUnrecoverably(initialRequest, serverConnection)
 //            return false
 //        }
-        LOG.debug(
+        LOG.error(
                 "Connection to upstream server failed: {}.  Last state before failure: {}",
                 serverConnection.remoteAddress,
                 lastStateBeforeFailure,
                 cause)
-        connectionFailedUnrecoverably(initialRequest, serverConnection)
+        connectionFailedUnrecoverably(this.currentRequest!!, serverConnection)
         return false
 
 
@@ -441,12 +386,12 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
                 currentHttpRequest, currentHttpResponse, httpObject)
 
         if (closeServerConnection) {
-            LOG.debug("Closing remote connection after writing to client")
+            LOG.error("Closing remote connection after writing to client")
             serverConnection.disconnect()
         }
 
         if (closeClientConnection) {
-            LOG.debug("Closing connection to client after writes")
+            LOG.error("Closing connection to client after writes")
             disconnect()
         }
     }
@@ -529,7 +474,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 
         // ignore the request's keep-alive; we can keep this server connection open as long as the server allows it.
 
-        if (HttpUtil.isKeepAlive(response)) {
+        if (!HttpUtil.isKeepAlive(response)) {
             LOG.debug("Closing server connection since response is not keep alive: {}", response)
             // In this case, we want to honor the Connection: close header
             // from the remote server and close that connection. We don't
