@@ -109,7 +109,7 @@
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
               <!--库所在的文件夹，通常是把运行所需要的jar包放入jar文件所在的同级lib文件夹中，可以自行拷贝，目前无需自行拷贝，详细见下一plugin-->
-              <mainClass>com.bbz.outsource.uaes.oa.MainVerticle</mainClass>
+              <mainClass>com.bbz.network.reverseproxy.LauncherKt</mainClass>
               <!--运行的主类-->
 
             </manifest>

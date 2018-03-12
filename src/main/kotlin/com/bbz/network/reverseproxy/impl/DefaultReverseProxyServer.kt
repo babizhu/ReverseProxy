@@ -10,6 +10,7 @@ import io.netty.channel.ServerChannel
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
+import io.netty.util.ResourceLeakDetector
 import io.netty.util.concurrent.GlobalEventExecutor
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
@@ -118,6 +119,10 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
             throw IllegalStateException("Attempted to start reverse proxy, but proxy's server group is already stopped")
         }
 
+        //注意，这个选项对性能有很大影响，正式发布版本需要移除
+//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
+//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
         return this
     }
 

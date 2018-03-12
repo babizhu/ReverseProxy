@@ -1,7 +1,6 @@
 package com.bbz.network.reverseproxy.impl
 
 import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelPipeline
 import io.netty.handler.codec.http.*
 import io.netty.handler.timeout.IdleStateHandler
@@ -93,7 +92,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun readHTTPInitial(httpObject: HttpRequest): ConnectionState {
-        LOG.error("{}- Received raw request: {}", this.channel, httpObject.uri())
+        LOG.info("{}- Received raw request: {}", this.channel, httpObject.uri())
 
         // if we cannot parse the request, immediately return a 400 and close the connection, since we do not know what state
         // the client thinks the connection is in
@@ -113,10 +112,11 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
         return doReadHTTPInitial(httpObject)
 
     }
+
     private fun doReadHTTPInitial(httpRequest: HttpRequest): ConnectionState {
         // Make a copy of the original request
         this.currentRequest = copy(httpRequest)
-        val serverHostAndPort = "localhost:8081"//nginx server
+        val serverHostAndPort = "localhost:8080"//nginx server
 
         if (currentServerConnection == null) {
 
@@ -141,6 +141,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
             ConnectionState.AWAITING_INITIAL
         }
     }
+
     override fun exceptionCaught(cause: Throwable) {
         try {
             when (cause) {
@@ -182,8 +183,8 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 
         // allow short-circuit messages to close the connection. normally the Connection header would be stripped when modifying
         // the message for proxying, so save the keep-alive status before the modifications are made.
-        val isKeepAlive = HttpUtil.isKeepAlive(httpResponse)
-        HttpUtil.setKeepAlive(httpResponse, isKeepAlive)
+//        val isKeepAlive = HttpUtil.isKeepAlive(httpResponse)
+//        HttpUtil.setKeepAlive(httpResponse, isKeepAlive)
 
         write(httpResponse)
 
@@ -200,9 +201,8 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
     }
 
 
-
     private fun writeEmptyBuffer() {
-        write(Unpooled.EMPTY_BUFFER)
+//        write(Unpooled.EMPTY_BUFFER)
     }
 
     /**
@@ -363,9 +363,9 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 
         write(httpObject)
 
-        if (ProxyUtils.isLastChunk(httpObject)) {
-            writeEmptyBuffer()
-        }
+//        if (ProxyUtils.isLastChunk(httpObject)) {
+//            writeEmptyBuffer()
+//        }
 
         closeConnectionsAfterWriteIfNecessary(serverConnection,
                 currentHttpRequest, currentHttpResponse, httpObject)
@@ -485,5 +485,22 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
 
         LOG.debug("Not closing server connection for response: {}", response)
         return false
+    }
+
+    fun timedOut(serverConnection: ProxyToServerConnection) {
+        if (currentServerConnection === serverConnection && this.lastReadTime > serverConnection.lastReadTime) {
+            // the idle timeout fired on the active server connection. send a timeout response to the client.
+            LOG.warn("Server timed out: {}", currentServerConnection)
+//            currentFilters.serverToProxyResponseTimedOut()
+            writeGatewayTimeout()
+        }
+    }
+
+    private fun writeGatewayTimeout(): Boolean {
+        val body = "Gateway Timeout"
+        val response = ProxyUtils.createFullHttpResponse(HttpVersion.HTTP_1_1,
+                HttpResponseStatus.GATEWAY_TIMEOUT, body)
+
+        return respondWithShortCircuitResponse(response)
     }
 }

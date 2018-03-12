@@ -33,7 +33,7 @@ abstract class ProxyConnection<in I : HttpObject>(
     protected lateinit var channel: Channel
 
     @Volatile
-    protected var lastReadTime: Long = 0
+    var lastReadTime: Long = 0
 
 
     /***************************************************************************
@@ -117,7 +117,6 @@ abstract class ProxyConnection<in I : HttpObject>(
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {
         try {
             if (evt is IdleStateEvent) {
-                LOG.debug("Got idle")
                 timedOut()
             }
         } finally {
@@ -275,8 +274,8 @@ abstract class ProxyConnection<in I : HttpObject>(
      * This method is called when the underlying [Channel] times out due
      * to an idle timeout.
      */
-    protected fun timedOut() {
-        LOG.error("timeout{}",this.channel)
+    open fun timedOut() {
+        LOG.info("timeout{}",this.channel)
         disconnect()
     }
 

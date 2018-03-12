@@ -104,7 +104,9 @@ class ProxyToServerConnection private constructor(proxyServer: DefaultReversePro
     }
 
     override fun readHTTPChunk(chunk: HttpContent) {
+
         respondWith(chunk)
+
     }
 
 
@@ -292,6 +294,11 @@ class ProxyToServerConnection private constructor(proxyServer: DefaultReversePro
                         .getIdleConnectionTimeout()))
 
         pipeline.addLast("handler", this)
+    }
+
+     override fun timedOut() {
+        super.timedOut()
+        clientConnection.timedOut(this)
     }
 
     internal fun connectionSucceeded(shouldForwardInitialRequest: Boolean) {
