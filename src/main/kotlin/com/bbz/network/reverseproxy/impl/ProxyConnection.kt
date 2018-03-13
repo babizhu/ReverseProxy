@@ -29,6 +29,7 @@ abstract class ProxyConnection<in I : HttpObject>(
 
     @Volatile
     internal lateinit var ctx: ChannelHandlerContext
+
     @Volatile
     protected lateinit var channel: Channel
 
@@ -39,64 +40,75 @@ abstract class ProxyConnection<in I : HttpObject>(
     /***************************************************************************
      * Adapting the Netty API
      **************************************************************************/
-    @Throws(Exception::class)
+//    @Throws(Exception::class)
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Any) {
         read(msg)
     }
 
-    @Throws(Exception::class)
+    //    @Throws(Exception::class)
     override fun channelRegistered(ctx: ChannelHandlerContext) {
-        try {
-            this.ctx = ctx
-            this.channel = ctx.channel()
-            this.proxyServer.registerChannel(ctx.channel())
-        } finally {
-            super.channelRegistered(ctx)
-        }
+//        try {
+//            this.ctx = ctx
+//            this.channel = ctx.channel()
+//            this.proxyServer.registerChannel(ctx.channel())
+//        } finally {
+//            super.channelRegistered(ctx)
+//        }
+        this.ctx = ctx
+        this.channel = ctx.channel()
+        this.proxyServer.registerChannel(ctx.channel())
     }
 
     /**
      * Only once the Netty Channel is active to we recognize the ProxyConnection
      * as connected.
      */
-    @Throws(Exception::class)
+//    @Throws(Exception::class)
     override fun channelActive(ctx: ChannelHandlerContext) {
-        try {
-            connected()
-        } finally {
-            super.channelActive(ctx)
-        }
+//        try {
+//            connected()
+//        } finally {
+//            super.channelActive(ctx)
+//        }
+        connected()
     }
 
     /**
      * As soon as the Netty Channel is inactive, we recognize the
      * ProxyConnection as disconnected.
      */
-    @Throws(Exception::class)
+//    @Throws(Exception::class)
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        try {
-            LOG.error("channelInactive:{}",this.channel)
-            disconnected()
-        } finally {
-            super.channelInactive(ctx)
-        }
+//        try {
+//            LOG.error("channelInactive:{}", this.channel)
+//            disconnected()
+//        } finally {
+//            super.channelInactive(ctx)
+//        }
+        LOG.error("channelInactive:{}", this.channel)
+        disconnected()
     }
 
-    @Throws(Exception::class)
+    //    @Throws(Exception::class)
     override fun channelWritabilityChanged(ctx: ChannelHandlerContext) {
         LOG.debug("Writability changed. Is writable: {}", channel.isWritable)
-        try {
-            if (ctx.channel().isWritable) {
-                becameWritable()
-            } else {
-                becameSaturated()
-            }
-        } finally {
-            super.channelWritabilityChanged(ctx)
+//        try {
+//            if (ctx.channel().isWritable) {
+//                becameWritable()
+//            } else {
+//                becameSaturated()
+//            }
+//        } finally {
+//            super.channelWritabilityChanged(ctx)
+//        }
+        if (ctx.channel().isWritable) {
+            becameWritable()
+        } else {
+            becameSaturated()
         }
     }
 
-    @Throws(Exception::class)
+    //    @Throws(Exception::class)
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         exceptionCaught(cause)
     }
@@ -113,14 +125,17 @@ abstract class ProxyConnection<in I : HttpObject>(
      * Note - we don't care what kind of IdleState we got. Thanks to [qbast](https://github.com/qbast) for pointing this out.
      *
      */
-    @Throws(Exception::class)
+//    @Throws(Exception::class)
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {
-        try {
-            if (evt is IdleStateEvent) {
-                timedOut()
-            }
-        } finally {
-            super.userEventTriggered(ctx, evt)
+//        try {
+//            if (evt is IdleStateEvent) {
+//                timedOut()
+//            }
+//        } finally {
+//            super.userEventTriggered(ctx, evt)
+//        }
+        if (evt is IdleStateEvent) {
+            timedOut()
         }
     }
 
@@ -257,7 +272,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      * [Channel] is connected doesn't mean that our connection is fully
      * established.
      */
-    private fun connected() {
+    open fun connected() {
         LOG.debug("Connected")
     }
 
@@ -265,7 +280,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      * This method is called as soon as the underlying [Channel] becomes
      * disconnected.
      */
-    private fun disconnected() {
+    open fun disconnected() {
         become(ConnectionState.DISCONNECTED)
         LOG.debug("Disconnected")
     }
@@ -275,7 +290,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      * to an idle timeout.
      */
     open fun timedOut() {
-        LOG.info("timeout{}",this.channel)
+        LOG.info("timeout{}", this.channel)
         disconnect()
     }
 
@@ -309,6 +324,7 @@ abstract class ProxyConnection<in I : HttpObject>(
      *         connected, this returns null.
      */
     fun disconnect(): Future<Void>? {
+        @Suppress("SENSELESS_COMPARISON")
         return if (channel == null) {
             null
         } else {
