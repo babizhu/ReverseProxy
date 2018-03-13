@@ -12,6 +12,6 @@ fun main(args: Array<String>) {
     val bootstrap = DefaultReverseProxyServer.bootstrap()
 //            .bootstrapFromFile("./littleproxy.properties")
             .withPort(8000)
-            .withConnectTimeout(1000)
+            .withConnectTimeout(3000)
     bootstrap.start()
 }

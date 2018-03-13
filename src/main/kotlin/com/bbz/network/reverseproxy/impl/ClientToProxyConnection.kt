@@ -116,7 +116,7 @@ open class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer,
     private fun doReadHTTPInitial(httpRequest: HttpRequest): ConnectionState {
         // Make a copy of the original request
         this.currentRequest = copy(httpRequest)
-        val serverHostAndPort = "localhost:8080"//nginx server
+        val serverHostAndPort = "localhost:9090"//nginx server
 
         if (currentServerConnection == null) {
 

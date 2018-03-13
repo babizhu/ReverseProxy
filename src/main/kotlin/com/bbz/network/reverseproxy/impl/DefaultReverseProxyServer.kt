@@ -3,10 +3,8 @@ package com.bbz.network.reverseproxy.impl
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.Channel
-import io.netty.channel.ChannelFactory
-import io.netty.channel.ChannelInitializer
-import io.netty.channel.ServerChannel
+import io.netty.channel.*
+import io.netty.channel.epoll.EpollChannelOption
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
@@ -141,7 +139,15 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
                         serverGroup.getClientToProxyAcceptorPool(),
                         serverGroup.getClientToProxyWorkerPool())
                 .channelFactory(ChannelFactory<ServerChannel> { NioServerSocketChannel() })
-                .childHandler(initializer)
+                .option(ChannelOption.SO_BACKLOG, 1024)          // (5)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.SO_RCVBUF, 10 * 1024)
+                .option(ChannelOption.SO_SNDBUF, 10 * 1024)
+                .option(EpollChannelOption.SO_REUSEPORT, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+        .childHandler(initializer)
 
         val future = serverBootstrap.bind(listenAddress)
 

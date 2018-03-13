@@ -274,7 +274,7 @@ class ProxyToServerConnection private constructor(proxyServer: DefaultReversePro
 
     private fun initChannelPipeline(pipeline: ChannelPipeline) {
         if (globalTrafficShapingHandler != null) {
-            pipeline.addLast("global-traffic-shaping", globalTrafficShapingHandler)
+//            pipeline.addLast("global-traffic-shaping", globalTrafficShapingHandler)
         }
 
 //        pipeline.addLast("bytesReadMonitor", bytesReadMonitor)
