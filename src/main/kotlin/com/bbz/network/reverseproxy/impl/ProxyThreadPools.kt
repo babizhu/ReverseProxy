@@ -1,7 +1,7 @@
 package com.bbz.network.reverseproxy.impl
 
 import io.netty.channel.EventLoopGroup
-import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.epoll.EpollEventLoopGroup
 import java.nio.channels.spi.SelectorProvider
 
 class ProxyThreadPools(selectorProvider: SelectorProvider, incomingAcceptorThreads: Int, incomingWorkerThreads: Int, outgoingWorkerThreads: Int, serverGroupName: String, serverGroupId: Int) {
@@ -11,21 +11,24 @@ class ProxyThreadPools(selectorProvider: SelectorProvider, incomingAcceptorThrea
      * proxies. A different EventLoopGroup is used for each
      * TransportProtocol, since these have to be configured differently.
      */
-    val clientToProxyAcceptorPool: NioEventLoopGroup = NioEventLoopGroup(incomingAcceptorThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyAcceptor", serverGroupId), selectorProvider)
+//    val clientToProxyAcceptorPool: EpollEventLoopGroup = EpollEventLoopGroup(incomingAcceptorThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyAcceptor", serverGroupId), selectorProvider)
+    val clientToProxyAcceptorPool: EpollEventLoopGroup = EpollEventLoopGroup(incomingAcceptorThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyAcceptor", serverGroupId))
 
     /**
      * These [EventLoopGroup]s process incoming requests to the
      * proxies. A different EventLoopGroup is used for each
      * TransportProtocol, since these have to be configured differently.
      */
-    val clientToProxyWorkerPool: NioEventLoopGroup = NioEventLoopGroup(incomingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyWorker", serverGroupId), selectorProvider)
+//    val clientToProxyWorkerPool: EpollEventLoopGroup = EpollEventLoopGroup(incomingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyWorker", serverGroupId), selectorProvider)
+    val clientToProxyWorkerPool: EpollEventLoopGroup = EpollEventLoopGroup(incomingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyWorker", serverGroupId))
 
     /**
      * These [EventLoopGroup]s are used for making outgoing
      * connections to servers. A different EventLoopGroup is used for each
      * TransportProtocol, since these have to be configured differently.
      */
-    val proxyToServerWorkerPool: NioEventLoopGroup = NioEventLoopGroup(outgoingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ProxyToServerWorker", serverGroupId), selectorProvider)
+//    val proxyToServerWorkerPool: EpollEventLoopGroup = EpollEventLoopGroup(outgoingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ProxyToServerWorker", serverGroupId), selectorProvider)
+    val proxyToServerWorkerPool: EpollEventLoopGroup = EpollEventLoopGroup(outgoingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ProxyToServerWorker", serverGroupId))
 
 
     init {

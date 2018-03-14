@@ -3,10 +3,12 @@ package com.bbz.network.reverseproxy.impl
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.*
+import io.netty.channel.Channel
+import io.netty.channel.ChannelInitializer
+import io.netty.channel.ChannelOption
 import io.netty.channel.epoll.EpollChannelOption
+import io.netty.channel.epoll.EpollServerSocketChannel
 import io.netty.channel.group.DefaultChannelGroup
-import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
 import io.netty.util.ResourceLeakDetector
 import io.netty.util.concurrent.GlobalEventExecutor
@@ -138,7 +140,8 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
                 .group(
                         serverGroup.getClientToProxyAcceptorPool(),
                         serverGroup.getClientToProxyWorkerPool())
-                .channelFactory(ChannelFactory<ServerChannel> { NioServerSocketChannel() })
+                .channel(EpollServerSocketChannel::class.java)
+//                .channelFactory(ChannelFactory<ServerChannel> { NioServerSocketChannel() })
                 .option(ChannelOption.SO_BACKLOG, 1024)          // (5)
                 .option(ChannelOption.SO_REUSEADDR, true)
 //                .option(ChannelOption.SO_RCVBUF, 10 * 1024)
@@ -149,19 +152,22 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
         .childHandler(initializer)
 
-        val future = serverBootstrap.bind(listenAddress)
 
-        future.addListener({
-            if (future.isSuccess) {
-                registerChannel(future.channel())
+        repeat(4) {
+
+            val future = serverBootstrap.bind(listenAddress)
+            future.addListener({
+                if (future.isSuccess) {
+                    registerChannel(future.channel())
+                }
+            }).awaitUninterruptibly()
+            val cause = future.cause()
+            if (cause != null) {
+                throw RuntimeException(cause)
             }
-        }).awaitUninterruptibly()
-
-
-        val cause = future.cause()
-        if (cause != null) {
-            throw RuntimeException(cause)
         }
+
+
 
 //        this.boundAddress = future.channel().localAddress() as InetSocketAddress
         LOG.info("Reverse Proxy started at address: " + this.listenAddress)

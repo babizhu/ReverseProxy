@@ -7,7 +7,7 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.ChannelOption
 import io.netty.channel.ChannelPipeline
-import io.netty.channel.socket.nio.NioSocketChannel
+import io.netty.channel.epoll.EpollSocketChannel
 import io.netty.handler.codec.http.*
 import io.netty.handler.timeout.IdleStateHandler
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
@@ -255,7 +255,8 @@ class ProxyToServerConnection private constructor(proxyServer: DefaultReversePro
 
         override fun execute(): Future<*> {
             val cb = Bootstrap().group(proxyServer.serverGroup.getProxyToServerWorkerPool())
-                    .channel(NioSocketChannel::class.java)
+                    .channel(EpollSocketChannel::class.java)
+//                    .channel(NioSocketChannel::class.java)
                     .handler(
                             object : ChannelInitializer<Channel>() {
                                 @Throws(Exception::class)

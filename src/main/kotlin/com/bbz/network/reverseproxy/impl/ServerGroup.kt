@@ -17,7 +17,7 @@ class ServerGroup(name: String, incomingAcceptorThreads: Int, incomingWorkerThre
          * The default number of threads to accept incoming requests from clients. (Requests are serviced by worker threads,
          * not acceptor threads.)
          */
-        const val DEFAULT_INCOMING_ACCEPTOR_THREADS = 2
+        const val DEFAULT_INCOMING_ACCEPTOR_THREADS = 4
 
         /**
          * The default number of threads to service incoming requests from clients.
