@@ -1,8 +1,6 @@
 package com.bbz.network.reverseproxy.impl1
 
-import io.netty.channel.Channel
-import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.channel.*
 
 class HexDumpProxyBackendHandler(private val inboundChannel: Channel) : ChannelInboundHandlerAdapter() {
 
@@ -11,12 +9,12 @@ class HexDumpProxyBackendHandler(private val inboundChannel: Channel) : ChannelI
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        inboundChannel.writeAndFlush(msg).addListener({
+        inboundChannel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
 
             if (it.isSuccess) {
                 ctx.channel().read()
             } else {
-                ctx.channel().close()
+                it.channel().close()
 
             }
         })

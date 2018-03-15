@@ -8,17 +8,17 @@
     </encoder>
   </appender>
   <logger name="com.bbz.network.reverseproxy.impl.ClientToProxyConnection" level="debug" additivity="false">
-    <appender-ref ref="STDOUT"/>
+    <!--<appender-ref ref="STDOUT"/>-->
 
   </logger>
 
   <logger name="com.bbz.network.reverseproxy" level="debug" additivity="false">
-    <appender-ref ref="STDOUT"/>
+    <!--<appender-ref ref="STDOUT"/>-->
 
   </logger>
 
   <root level="debug">
-    <appender-ref ref="STDOUT"/>
+    <!--<appender-ref ref="STDOUT"/>-->
 
   </root>
 

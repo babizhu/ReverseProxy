@@ -51,12 +51,12 @@ class HexDumpProxyFrontendHandler(private val remoteHost: String,
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (outboundChannel.isActive) {
-            outboundChannel.writeAndFlush(msg).addListener({
+            outboundChannel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
                     if (it.isSuccess) {
                         // was able to flush out data, start to read the next chunk
                         ctx.channel().read()
                     } else {
-                        ctx.channel().close()
+                        it.channel().close()
                     }
 
             })
