@@ -10,7 +10,6 @@ class HexDumpProxyBackendHandler(private val inboundChannel: Channel) : ChannelI
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         inboundChannel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
-
             if (it.isSuccess) {
                 ctx.channel().read()
             } else {
