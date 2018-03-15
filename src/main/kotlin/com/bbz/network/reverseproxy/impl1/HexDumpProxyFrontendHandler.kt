@@ -3,6 +3,7 @@ package com.bbz.network.reverseproxy.impl1
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.*
+import io.netty.handler.codec.http.HttpClientCodec
 
 class HexDumpProxyFrontendHandler(private val remoteHost: String,
                                   private val remotePort: Int) : ChannelInboundHandlerAdapter() {
@@ -30,16 +31,24 @@ class HexDumpProxyFrontendHandler(private val remoteHost: String,
         val b = Bootstrap()
         b.group(inboundChannel.eventLoop())
                 .channel(ctx.channel()::class.java)
-                .handler(HexDumpProxyBackendHandler(inboundChannel))
+//                .handler(HexDumpProxyBackendHandler(inboundChannel))
+                .handler(object : ChannelInitializer<Channel>() {
+                    @Throws(Exception::class)
+                    override fun initChannel(ch: Channel) {
+                        ch.pipeline().addLast("codec", HttpClientCodec())
+                        ch.pipeline().addLast(HexDumpProxyBackendHandler(inboundChannel))
+                    }
+                })
                 .option(ChannelOption.AUTO_READ, false)
         val f = b.connect(remoteHost, remotePort)
+        println("begin connect ${Thread.currentThread().name}")
+
         outboundChannel = f.channel()
         f.addListener({
-
-
             if (it.isSuccess) {
+                println("connect success ${Thread.currentThread().name}")
                 // connection complete start to read first data
-                println("连接成功！！！")
+//                println("连接成功！！！")
                 inboundChannel.read()
             } else {
                 // Close the connection if the connection attempt has failed.
@@ -50,14 +59,20 @@ class HexDumpProxyFrontendHandler(private val remoteHost: String,
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+//        if (msg is HttpMessage) {
+//            println("HttpObject is $msg")
+//        } else if (msg is HttpContent) {
+//            println("HttpContent is $msg")
+//        }
         if (outboundChannel.isActive) {
             outboundChannel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
-                    if (it.isSuccess) {
-                        // was able to flush out data, start to read the next chunk
-                        ctx.channel().read()
-                    } else {
-                        it.channel().close()
-                    }
+                if (it.isSuccess) {
+                    // was able to flush out data, start to read the next chunk
+                    ctx.channel().read()
+                } else {
+                    it.cause().printStackTrace()
+                    it.channel().close()
+                }
 
             })
         }
