@@ -4,6 +4,7 @@ import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.*
 import io.netty.handler.codec.http.HttpClientCodec
+import io.netty.handler.timeout.IdleStateHandler
 
 class HexDumpProxyFrontendHandler(private val remoteHost: String,
                                   private val remotePort: Int) : ChannelInboundHandlerAdapter() {
@@ -31,12 +32,15 @@ class HexDumpProxyFrontendHandler(private val remoteHost: String,
         val b = Bootstrap()
         b.group(inboundChannel.eventLoop())
                 .channel(ctx.channel()::class.java)
-//                .handler(HexDumpProxyBackendHandler(inboundChannel))
                 .handler(object : ChannelInitializer<Channel>() {
                     @Throws(Exception::class)
                     override fun initChannel(ch: Channel) {
                         ch.pipeline().addLast("codec", HttpClientCodec())
-                        ch.pipeline().addLast(HexDumpProxyBackendHandler(inboundChannel))
+                        ch.pipeline().addLast(
+                                "idle",
+                                IdleStateHandler(0, 0, 70))
+
+                        ch.pipeline().addLast("handler",HexDumpProxyBackendHandler(inboundChannel))
                     }
                 })
                 .option(ChannelOption.AUTO_READ, false)
