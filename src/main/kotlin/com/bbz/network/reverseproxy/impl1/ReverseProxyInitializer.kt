@@ -5,7 +5,7 @@ import io.netty.channel.socket.SocketChannel
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.timeout.IdleStateHandler
 
-class HexDumpProxyInitializer(private val remoteHost: String,
+class ReverseProxyInitializer(private val remoteHost: String,
                               private val remotePort: Int) : ChannelInitializer<SocketChannel>() {
 
     public override fun initChannel(ch: SocketChannel) {
@@ -15,6 +15,6 @@ class HexDumpProxyInitializer(private val remoteHost: String,
                 IdleStateHandler(0, 0, 70))
 //        ch.pipeline().addLast(LoggingHandler (LogLevel.INFO))
 
-        ch.pipeline().addLast("handler", HexDumpProxyFrontendHandler(remoteHost, remotePort))
+        ch.pipeline().addLast("handler", ReverseProxyFrontendHandler(remoteHost, remotePort))
     }
 }

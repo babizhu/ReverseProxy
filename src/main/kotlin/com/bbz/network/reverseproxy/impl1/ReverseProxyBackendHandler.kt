@@ -3,7 +3,7 @@ package com.bbz.network.reverseproxy.impl1
 import io.netty.channel.*
 
 @Suppress("OverridingDeprecatedMember")
-class HexDumpProxyBackendHandler(private val inboundChannel: Channel) : ChannelInboundHandlerAdapter() {
+class ReverseProxyBackendHandler(private val inboundChannel: Channel) : ChannelInboundHandlerAdapter() {
 
     init {
 
@@ -25,11 +25,11 @@ class HexDumpProxyBackendHandler(private val inboundChannel: Channel) : ChannelI
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        HexDumpProxyFrontendHandler.closeOnFlush(inboundChannel)
+        ReverseProxyFrontendHandler.closeOnFlush(inboundChannel)
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         cause.printStackTrace()
-        HexDumpProxyFrontendHandler.closeOnFlush(ctx.channel())
+        ReverseProxyFrontendHandler.closeOnFlush(ctx.channel())
     }
 }

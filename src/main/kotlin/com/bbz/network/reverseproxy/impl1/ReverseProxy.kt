@@ -19,7 +19,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
  * Time per request:       0.112 [ms] (mean, across all concurrent requests)
  * Transfer rate:          7402.76 [Kbytes/sec] received
  */
-class HexDumpProxy {
+class ReverseProxy {
     companion object {
         val LOCAL_PORT = Integer.parseInt(System.getProperty("localPort", "8000"))
         val REMOTE_HOST = System.getProperty("remoteHost", "localhost")!!
@@ -27,7 +27,7 @@ class HexDumpProxy {
     }
 
     fun start() {
-        System.err.println("Proxying *:" + HexDumpProxy.LOCAL_PORT + " to " + HexDumpProxy.REMOTE_HOST + ':' + HexDumpProxy.REMOTE_PORT + " ...");
+        System.err.println("Proxying *:" + ReverseProxy.LOCAL_PORT + " to " + ReverseProxy.REMOTE_HOST + ':' + ReverseProxy.REMOTE_PORT + " ...");
 
         // Configure the bootstrap.
         val bossGroup = NioEventLoopGroup(1)
@@ -37,9 +37,9 @@ class HexDumpProxy {
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel::class.java)
 //                    .handler(LoggingHandler(LogLevel.INFO))
-                    .childHandler(HexDumpProxyInitializer(HexDumpProxy.REMOTE_HOST, HexDumpProxy.REMOTE_PORT))
+                    .childHandler(ReverseProxyInitializer(ReverseProxy.REMOTE_HOST, ReverseProxy.REMOTE_PORT))
                     .childOption(ChannelOption.AUTO_READ, false)
-                    .bind(HexDumpProxy.LOCAL_PORT).sync().channel().closeFuture().sync()
+                    .bind(ReverseProxy.LOCAL_PORT).sync().channel().closeFuture().sync()
         } finally {
             bossGroup.shutdownGracefully()
             workerGroup.shutdownGracefully()

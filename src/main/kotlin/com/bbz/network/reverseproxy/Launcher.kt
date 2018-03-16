@@ -1,6 +1,6 @@
 package com.bbz.network.reverseproxy
 
-import com.bbz.network.reverseproxy.impl1.HexDumpProxy
+import com.bbz.network.reverseproxy.impl1.ReverseProxy
 
 //class Launcher {
 //
@@ -15,5 +15,5 @@ fun main(args: Array<String>) {
 //            .withConnectTimeout(3000)
 //    bootstrap.start()
 
-    HexDumpProxy().start()
+    ReverseProxy().start()
 }
