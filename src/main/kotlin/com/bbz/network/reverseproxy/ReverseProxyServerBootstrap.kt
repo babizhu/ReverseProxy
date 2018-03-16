@@ -317,8 +317,8 @@ interface ReverseProxyServerBootstrap {
     /**
      * Set the configuration parameters for the proxy's thread pools.
      *
-     * @param configuration thread pool configuration
+     * @param threadPoolConfiguration thread pool configuration
      * @return proxy server bootstrap for chaining
      */
-    fun withThreadPoolConfiguration(configuration: ThreadPoolConfiguration): ReverseProxyServerBootstrap
+    fun withThreadPoolConfiguration(threadPoolConfiguration: ThreadPoolConfiguration): ReverseProxyServerBootstrap
 }

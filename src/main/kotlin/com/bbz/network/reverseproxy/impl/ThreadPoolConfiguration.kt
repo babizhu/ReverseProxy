@@ -1,58 +1,47 @@
 package com.bbz.network.reverseproxy.impl
 
-class ThreadPoolConfiguration {
-    private var acceptorThreads = ServerGroup.DEFAULT_INCOMING_ACCEPTOR_THREADS
-    private var clientToProxyWorkerThreads = ServerGroup.DEFAULT_INCOMING_WORKER_THREADS
-    private var proxyToServerWorkerThreads = ServerGroup.DEFAULT_OUTGOING_WORKER_THREADS
+import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 
-    fun getClientToProxyWorkerThreads(): Int {
-        return clientToProxyWorkerThreads
+class ThreadPoolConfiguration {
+    private var acceptorThreadsNum = DefaultThreadPoolConfig.ACCEPTOR_THREAD_NUM
+    private var workerThreadsNum = DefaultThreadPoolConfig.WORKER_THREAD_NUM
+
+    fun workerThreadsNum(): Int {
+        return workerThreadsNum
     }
 
     /**
      * Set the number of client-to-proxy worker threads to create. Worker threads perform the actual processing of
-     * client requests. The default value is [ServerGroup.DEFAULT_INCOMING_WORKER_THREADS].
+     * client requests. The default value is [DefaultThreadPoolConfig.ACCEPTOR_THREAD_NUM].
      *
-     * @param clientToProxyWorkerThreads number of client-to-proxy worker threads to create
+     * @param workThreadsNum number of client-to-proxy worker threads to create
      * @return this thread pool configuration instance, for chaining
      */
-    fun withClientToProxyWorkerThreads(clientToProxyWorkerThreads: Int): ThreadPoolConfiguration {
-        this.clientToProxyWorkerThreads = clientToProxyWorkerThreads
+    fun withWorkerThreadsNum(workThreadsNum: Int): ThreadPoolConfiguration {
+        this.workerThreadsNum = workThreadsNum
         return this
     }
 
-    fun getAcceptorThreads(): Int {
-        return acceptorThreads
+    fun getWorkerThreadsNum():Int {
+        return  workerThreadsNum
     }
 
     /**
      * Set the number of acceptor threads to create. Acceptor threads accept HTTP connections from the client and queue
      * them for processing by client-to-proxy worker threads. The default value is
-     * [ServerGroup.DEFAULT_INCOMING_ACCEPTOR_THREADS].
+     * [DefaultThreadPoolConfig.ACCEPTOR_THREAD_NUM].
      *
-     * @param acceptorThreads number of acceptor threads to create
+     * @param acceptorThreadsNum number of acceptor threads to create
      * @return this thread pool configuration instance, for chaining
      */
-    fun withAcceptorThreads(acceptorThreads: Int): ThreadPoolConfiguration {
-        this.acceptorThreads = acceptorThreads
+    fun withAcceptorThreadsNum(acceptorThreadsNum: Int): ThreadPoolConfiguration {
+        this.acceptorThreadsNum = acceptorThreadsNum
         return this
     }
 
-    fun getProxyToServerWorkerThreads(): Int {
-        return proxyToServerWorkerThreads
-    }
 
-    /**
-     * Set the number of proxy-to-server worker threads to create. Proxy-to-server worker threads make requests to
-     * upstream servers and process responses from the server. The default value is
-     * [ServerGroup.DEFAULT_OUTGOING_WORKER_THREADS].
-     *
-     * @param proxyToServerWorkerThreads number of proxy-to-server worker threads to create
-     * @return this thread pool configuration instance, for chaining
-     */
-    fun withProxyToServerWorkerThreads(proxyToServerWorkerThreads: Int): ThreadPoolConfiguration {
-        this.proxyToServerWorkerThreads = proxyToServerWorkerThreads
-        return this
+    fun getAcceptorThreadsNum():Int {
+        return  acceptorThreadsNum
     }
 
 }
