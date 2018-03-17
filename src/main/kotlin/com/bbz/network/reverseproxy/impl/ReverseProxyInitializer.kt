@@ -14,6 +14,6 @@ class ReverseProxyInitializer(private val proxyServer: DefaultReverseProxyServer
                 IdleStateHandler(0, 0, proxyServer.getIdleConnectionTimeout()))
 //        ch.pipeline().addLast(LoggingHandler (LogLevel.INFO))
 
-        ch.pipeline().addLast("handler", ClientToProxyConnection(proxyServer))
+        ch.pipeline().addLast("handler", ClientToProxyConnection(proxyServer ))
     }
 }
