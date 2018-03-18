@@ -28,8 +28,6 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
-
-
         channel.read()
     }
 
@@ -50,13 +48,13 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
         log.debug("{} channelInactive", ctx.channel())
-        proxyToServerConnection?.close()
+        proxyToServerConnection?.disconnect()
     }
 
     @Suppress("OverridingDeprecatedMember")
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         cause.printStackTrace()
-        close()
+        disconnect()
 
     }
 
@@ -75,11 +73,6 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
     fun eventloop(): EventLoop {
         return channel.eventLoop()
-    }
-
-    fun close() {
-
-        closeOnFlush()
     }
 
 }

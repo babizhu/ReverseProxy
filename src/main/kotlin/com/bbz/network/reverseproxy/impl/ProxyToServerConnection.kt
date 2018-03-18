@@ -1,7 +1,10 @@
 package com.bbz.network.reverseproxy.impl
 
 import io.netty.bootstrap.Bootstrap
-import io.netty.channel.*
+import io.netty.channel.ChannelFuture
+import io.netty.channel.ChannelFutureListener
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.codec.http.HttpClientCodec
@@ -41,12 +44,12 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        clientToProxyConnection.close()
+        clientToProxyConnection.disconnect()
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         cause.printStackTrace()
-        clientToProxyConnection.close()
+        clientToProxyConnection.disconnect()
 
     }
 
@@ -66,46 +69,44 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 })
 //                .option(ChannelOption.AUTO_READ, false)
 
-        val f = b.connect(remoteAddress)
+        val future = b.connect(remoteAddress)
         remoteConnectionState = ConnectionState.CONNECTING
 
-        channel = f.channel()
-        f.addListener({
+        channel = future.channel()
+
+        future.addListener({
             if (it.isSuccess) {
                 remoteConnectionState = ConnectionState.AWAITING_INITIAL
                 channel.write(currentRequest)
                 channel.writeAndFlush(waitHttpContent).addListener {
                     clientToProxyConnection.resumeRead()
                 }
-                // connection complete start to read first data
             } else {
                 // Close the connection if the connection attempt has failed.
                 it.cause().printStackTrace()
                 log.error(it.cause().localizedMessage)
-                clientToProxyConnection.close()
+                clientToProxyConnection.disconnect()
             }
 
         })
     }
 
+
     fun writeToServer(msg: Any) {
         when (remoteConnectionState) {
             ConnectionState.AWAITING_INITIAL -> {
                 if (channel.isActive) {
-
                     channel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
                         if (it.isSuccess) {
                             // was able to flush out data, start to read the next chunk
-//                            ctx.channel().read()
                             clientToProxyConnection.resumeRead()
                         } else {
                             it.cause().printStackTrace()
                             it.channel().close()
                         }
-
                     })
                 } else {
-                    log.error("连接断了")
+                    log.error("连接断了!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 }
             }
             ConnectionState.DISCONNECTED -> {
@@ -115,7 +116,6 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
             }
             ConnectionState.CONNECTING -> {
                 waitHttpContent = msg as HttpObject
-
             }
 
             else -> {
@@ -129,12 +129,8 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
      * 根据request计算应该连接哪个远程服务器，未来重点扩充地点
      */
     private fun getRemoteAddress(currentRequest: HttpRequest): InetSocketAddress {
+
         return InetSocketAddress(8080)
     }
-
-    fun close() {
-        closeOnFlush()
-    }
-
 
 }
