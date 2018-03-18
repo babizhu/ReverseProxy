@@ -8,6 +8,7 @@ import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.codec.http.HttpClientCodec
+import io.netty.handler.codec.http.HttpContent
 import io.netty.handler.codec.http.HttpObject
 import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.timeout.IdleStateHandler
@@ -16,7 +17,8 @@ import java.net.InetSocketAddress
 
 @Suppress("OverridingDeprecatedMember")
 class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
-                              private val clientToProxyConnection: ClientToProxyConnection) : ProxyConnection(proxyServer) {
+                              private val clientToProxyConnection: ClientToProxyConnection)
+    : ProxyConnection(proxyServer) {
 
     init {
 
@@ -33,10 +35,11 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     private var remoteConnectionState = ConnectionState.DISCONNECTED
 
     private lateinit var currentRequest: HttpRequest
-    private lateinit var waitHttpContent: HttpObject
-    //    override fun channelRegistered(ctx: ChannelHandlerContext) {
-//        this.channel = ctx.channel()
-//    }
+    /**
+     * 暂存随着HttpRequest一起解析出来的HttpContent
+     */
+    private lateinit var waitHttpContent: HttpContent
+
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         clientToProxyConnection.writeToClient(msg)
@@ -121,7 +124,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 connectAndWrite(remoteAddress)
             }
             ConnectionState.CONNECTING -> {
-                waitHttpContent = msg as HttpObject
+                waitHttpContent = msg as HttpContent
             }
 
             else -> {
