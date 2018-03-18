@@ -28,14 +28,18 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
-        channel.read()
+//        var autoRead = channel.config().isAutoRead
+//
+//        channel.read()
+//        autoRead = channel.config().isAutoRead
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg is HttpRequest) {
             this.currentRequest = msg
+            channel.config().isAutoRead = false
             log.debug(msg.uri())
-        }else{
+        } else {
             log.debug(msg.toString())
         }
         if (proxyToServerConnection == null) {

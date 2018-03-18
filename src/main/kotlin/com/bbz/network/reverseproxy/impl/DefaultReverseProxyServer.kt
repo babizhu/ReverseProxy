@@ -115,10 +115,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             throw IllegalStateException("Attempted to start reverse proxy, but proxy's server group is already stopped")
         }
 
-        //注意，这个选项对性能有很大影响，正式发布版本需要移除
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
+
         return this
     }
 
@@ -132,6 +129,10 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 //                        globalTrafficShapingHandler)
 //            }
 //        }
+        //注意，这个选项对性能有很大影响，正式发布版本需要移除
+//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
+//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
         val serverBootstrap = ServerBootstrap()
                 .group(
                         serverGroup.getAcceptorPool(),
@@ -142,6 +143,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 //                .option(ChannelOption.SO_RCVBUF, 10 * 1024)
 //                .option(ChannelOption.SO_SNDBUF, 10 * 1024)
                 .option(EpollChannelOption.SO_REUSEPORT, true)
+//                .childOption(ChannelOption.AUTO_READ,false)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)

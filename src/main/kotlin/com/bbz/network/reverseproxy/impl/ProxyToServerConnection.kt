@@ -79,7 +79,13 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 remoteConnectionState = ConnectionState.AWAITING_INITIAL
                 channel.write(currentRequest)
                 channel.writeAndFlush(waitHttpContent).addListener {
-                    clientToProxyConnection.resumeRead()
+                    if(it.isSuccess){
+                        clientToProxyConnection.resumeRead()
+                    }else{
+                        it.cause().printStackTrace()
+                        log.error(it.cause().localizedMessage)
+                        clientToProxyConnection.disconnect()
+                    }
                 }
             } else {
                 // Close the connection if the connection attempt has failed.
