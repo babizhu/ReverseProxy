@@ -18,7 +18,7 @@ class ProxyThreadPools(selectorProvider: SelectorProvider, incomingAcceptorThrea
      * proxies. A different EventLoopGroup is used for each
      * TransportProtocol, since these have to be configured differently.
      */
-    val workerPool: NioEventLoopGroup = NioEventLoopGroup(incomingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ClientToProxyWorker", serverGroupId), selectorProvider)
+    val workerPool: NioEventLoopGroup = NioEventLoopGroup(incomingWorkerThreads, CategorizedThreadFactory(serverGroupName, "ReverseProxyWorker", serverGroupId), selectorProvider)
 
 
 

@@ -7,14 +7,22 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.timeout.IdleStateEvent
 import org.slf4j.LoggerFactory
+import java.io.IOException
+import java.util.concurrent.RejectedExecutionException
 
 abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxyServer) : ChannelInboundHandlerAdapter() {
     protected lateinit var channel: Channel
+
     companion object {
         private val log = LoggerFactory.getLogger(ProxyConnection::class.java)
+    }
 
+    override fun channelRegistered(ctx: ChannelHandlerContext) {
+        this.channel = ctx.channel()
+        proxyServer.registerChannel(channel)
 
     }
+
     /**
      * Closes the specified channel after all queued write requests are flushed.
      */
@@ -34,7 +42,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
      * to an idle timeout.
      */
     private fun timedOut() {
-        log.debug("{} timeout",channel)
+        log.debug("{} timeout", channel)
         disconnect()
     }
 
@@ -53,4 +61,27 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
         }
     }
 
+    protected open fun exceptionOccur(cause: Throwable) {
+//        try {
+        when (cause) {
+            is IOException -> {
+                // IOExceptions are expected errors, for example when a server drops the connection. rather than flood
+                // the logs with stack traces for these expected exceptions, log the message at the INFO level and the
+                // stack trace at the DEBUG level.
+                log.info("An IOException occurred on {}: {}", this::class.java.name, cause.message)
+                log.debug("An IOException occurred on " + this::class.java.name, cause)
+            }
+            is RejectedExecutionException -> {
+                log.info("An executor rejected a read or write operation on the " + this::class.java.name + " (this is normal if the proxy is shutting down). Message: ", cause.message)
+                log.debug("A RejectedExecutionException occurred on " + this::class.java.name, cause)
+            }
+            else -> log.error("Caught an exception on ProxyToServerConnection" + this::class.java.name, cause)
+        }
+    }
+//        finally {
+//
+//            log.info("Disconnecting open connection to server")
+//            disconnect()
+//        }
+//    }
 }

@@ -12,6 +12,7 @@ import io.netty.handler.codec.http.HttpContent
 import io.netty.handler.codec.http.HttpObject
 import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.timeout.IdleStateHandler
+import io.netty.util.concurrent.Future
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 
@@ -19,14 +20,10 @@ import java.net.InetSocketAddress
 class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                               private val clientToProxyConnection: ClientToProxyConnection)
     : ProxyConnection(proxyServer) {
-
-    init {
-
-    }
+    internal lateinit var remoteAddress: InetSocketAddress
 
     companion object {
         private val log = LoggerFactory.getLogger(ProxyToServerConnection::class.java)
-
     }
 
     /**
@@ -35,10 +32,11 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     private var remoteConnectionState = ConnectionState.DISCONNECTED
 
     private lateinit var currentRequest: HttpRequest
+
     /**
-     * 暂存随着HttpRequest一起解析出来的HttpContent
+     * 暂存随着HttpRequest一起解析出来的HttpContent，目前来看有且仅有一个
      */
-    private lateinit var waitHttpContent: HttpContent
+    private var waitToWriteHttpContent: HttpContent? = null
 
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
@@ -51,12 +49,12 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        cause.printStackTrace()
+        exceptionOccur(cause)
         clientToProxyConnection.disconnect()
-
     }
 
-    private fun connectAndWrite(remoteAddress: InetSocketAddress) {
+
+    private fun connectAndWrite() {
         val b = Bootstrap()
         b.group(clientToProxyConnection.eventloop())
                 .channel(NioSocketChannel::class.java)
@@ -75,33 +73,36 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         val future = b.connect(remoteAddress)
         remoteConnectionState = ConnectionState.CONNECTING
 
-        channel = future.channel()
+//        channel = future.channel()
+
+        val xx = fun(it: Future<in Void>) {
+            if (it.isSuccess) {
+                clientToProxyConnection.resumeRead()
+            } else {
+                exceptionOccur(it.cause())
+            }
+        }
 
         future.addListener({
             if (it.isSuccess) {
                 remoteConnectionState = ConnectionState.AWAITING_INITIAL
-                channel.write(currentRequest)
-                channel.writeAndFlush(waitHttpContent).addListener {
-                    if(it.isSuccess){
-                        clientToProxyConnection.resumeRead()
-                    }else{
-                        it.cause().printStackTrace()
-                        log.error(it.cause().localizedMessage)
-                        clientToProxyConnection.disconnect()
-                    }
+                if (waitToWriteHttpContent == null) {
+                    channel.writeAndFlush(currentRequest).addListener(xx)
+                } else {
+                    channel.write(currentRequest)
+                    channel.writeAndFlush(waitToWriteHttpContent).addListener(xx)
+
                 }
             } else {
-                // Close the connection if the connection attempt has failed.
-                it.cause().printStackTrace()
-                log.error(it.cause().localizedMessage)
-                clientToProxyConnection.disconnect()
-            }
+                clientToProxyConnection.serverConnectionFailed(this, it.cause())
 
+            }
         })
     }
 
 
-    fun writeToServer(msg: Any) {
+    fun writeToServer(msg: HttpObject) {
+
         when (remoteConnectionState) {
             ConnectionState.AWAITING_INITIAL -> {
                 if (channel.isActive) {
@@ -111,7 +112,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                             clientToProxyConnection.resumeRead()
                         } else {
                             it.cause().printStackTrace()
-                            it.channel().close()
+                            disconnect()
                         }
                     })
                 } else {
@@ -119,12 +120,12 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 }
             }
             ConnectionState.DISCONNECTED -> {
-                val remoteAddress = getRemoteAddress(msg as HttpRequest)
+                remoteAddress = calcRemoteAddress(msg as HttpRequest)
                 this.currentRequest = msg
-                connectAndWrite(remoteAddress)
+                connectAndWrite()
             }
             ConnectionState.CONNECTING -> {
-                waitHttpContent = msg as HttpContent
+                waitToWriteHttpContent = msg as HttpContent
             }
 
             else -> {
@@ -137,9 +138,9 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     /**
      * 根据request计算应该连接哪个远程服务器，未来重点扩充地点
      */
-    private fun getRemoteAddress(currentRequest: HttpRequest): InetSocketAddress {
+    private fun calcRemoteAddress(currentRequest: HttpRequest): InetSocketAddress {
 
-        return InetSocketAddress(8080)
+        return InetSocketAddress(9000)
     }
 
 }

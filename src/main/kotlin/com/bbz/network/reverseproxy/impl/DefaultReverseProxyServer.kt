@@ -129,10 +129,6 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 //                        globalTrafficShapingHandler)
 //            }
 //        }
-        //注意，这个选项对性能有很大影响，正式发布版本需要移除
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
         val serverBootstrap = ServerBootstrap()
                 .group(
                         serverGroup.getAcceptorPool(),
