@@ -24,8 +24,8 @@ import io.netty.util.ResourceLeakDetector
 fun main(args: Array<String>) {
 
     //注意，这个选项对性能有很大影响，正式发布版本需要移除
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
-    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
+//    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
 //        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
 
     val bootstrap = DefaultReverseProxyServer.bootstrap()

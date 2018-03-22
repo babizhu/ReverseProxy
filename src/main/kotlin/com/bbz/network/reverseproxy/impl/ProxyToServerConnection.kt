@@ -20,6 +20,7 @@ import java.net.InetSocketAddress
 class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                               private val clientToProxyConnection: ClientToProxyConnection)
     : ProxyConnection(proxyServer) {
+
     internal lateinit var remoteAddress: InetSocketAddress
 
     companion object {
@@ -40,8 +41,8 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
 
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+//        throw Exception("avcd")
         clientToProxyConnection.writeToClient(msg)
-
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
@@ -49,7 +50,6 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        exceptionOccur(cause)
         clientToProxyConnection.disconnect()
     }
 
@@ -70,7 +70,6 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 })
 //                .option(ChannelOption.AUTO_READ, false)
 
-        val future = b.connect(remoteAddress)
         remoteConnectionState = ConnectionState.CONNECTING
 
 //        channel = future.channel()
@@ -83,7 +82,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
             }
         }
 
-        future.addListener({
+        b.connect(remoteAddress).addListener({
             if (it.isSuccess) {
                 remoteConnectionState = ConnectionState.AWAITING_INITIAL
                 if (waitToWriteHttpContent == null) {
@@ -95,7 +94,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 }
             } else {
                 clientToProxyConnection.serverConnectionFailed(this, it.cause())
-
+                waitToWriteHttpContent?.content()?.refCnt()
             }
         })
     }
@@ -111,7 +110,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                             // was able to flush out data, start to read the next chunk
                             clientToProxyConnection.resumeRead()
                         } else {
-                            it.cause().printStackTrace()
+                            exceptionOccur(it.cause())
                             disconnect()
                         }
                     })

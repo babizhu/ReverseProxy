@@ -27,10 +27,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
      * Closes the specified channel after all queued write requests are flushed.
      */
     private fun closeOnFlush() {
-
-        if (channel.isActive) {
-            channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE)
-        }
+        channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE)
     }
 
     fun resumeRead() {
@@ -47,7 +44,9 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
     }
 
     fun disconnect() {
-        closeOnFlush()
+        if (channel.isActive) {
+            closeOnFlush()
+        }
     }
 
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {
@@ -75,7 +74,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
                 log.info("An executor rejected a read or write operation on the " + this::class.java.name + " (this is normal if the proxy is shutting down). Message: ", cause.message)
                 log.debug("A RejectedExecutionException occurred on " + this::class.java.name, cause)
             }
-            else -> log.error("Caught an exception on ProxyToServerConnection" + this::class.java.name, cause)
+            else -> log.error("Caught an exception on " + this::class.java.name, cause)
         }
     }
 //        finally {
