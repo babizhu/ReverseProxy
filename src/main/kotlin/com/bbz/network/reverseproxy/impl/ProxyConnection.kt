@@ -6,6 +6,7 @@ import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.timeout.IdleStateEvent
+import io.netty.util.ReferenceCountUtil
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.RejectedExecutionException
@@ -83,4 +84,11 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
 //            disconnect()
 //        }
 //    }
+
+    protected fun releaseHttpContent(msg:Any?){
+        msg?.let {
+            ReferenceCountUtil.release(it)
+
+        }
+    }
 }

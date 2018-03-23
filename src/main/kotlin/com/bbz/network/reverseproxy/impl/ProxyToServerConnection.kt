@@ -94,7 +94,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 }
             } else {
                 clientToProxyConnection.serverConnectionFailed(this, it.cause())
-                waitToWriteHttpContent?.content()?.refCnt()
+                releaseHttpContent(waitToWriteHttpContent)
             }
         })
     }
@@ -139,7 +139,8 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
      */
     private fun calcRemoteAddress(currentRequest: HttpRequest): InetSocketAddress {
 
-        return InetSocketAddress(9000)
+        return InetSocketAddress(8080)
     }
+
 
 }

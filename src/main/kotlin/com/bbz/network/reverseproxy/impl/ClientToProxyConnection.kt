@@ -56,9 +56,9 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             if (it.isSuccess) {
                 proxyToServerConnection!!.resumeRead()
             } else {
+//                releaseHttpContent(msg)不需要
                 exceptionOccur(it.cause())
                 disconnect()
-
             }
         })
     }
