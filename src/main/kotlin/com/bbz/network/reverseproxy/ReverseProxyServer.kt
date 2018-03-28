@@ -1,5 +1,6 @@
 package com.bbz.network.reverseproxy
 
+import com.bbz.network.reverseproxy.route.RoutePolicy
 import java.net.InetSocketAddress
 
 interface ReverseProxyServer {
@@ -53,6 +54,8 @@ interface ReverseProxyServer {
      * @return
      */
     fun getListenAddress(): InetSocketAddress
+
+    fun getRoutePolice():RoutePolicy
 
     /**
      *

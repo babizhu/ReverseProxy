@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import io.netty.channel.EventLoopGroup
@@ -8,26 +8,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-@Suppress("unused")
-class ServerGroup(name: String, incomingAcceptorThreads: Int, incomingWorkerThreads: Int, outgoingWorkerThreads: Int) {
+class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration) {
     companion object {
 
         private val log = LoggerFactory.getLogger(ServerGroup::class.java)
-        /**
-         * The default number of threads to accept incoming requests from clients. (Requests are serviced by worker threads,
-         * not acceptor threads.)
-         */
-        const val DEFAULT_INCOMING_ACCEPTOR_THREADS = 2
-
-        /**
-         * The default number of threads to service incoming requests from clients.
-         */
-        const val DEFAULT_INCOMING_WORKER_THREADS = 8
-
-        /**
-         * The default number of threads to service outgoing requests to servers.
-         */
-        const val DEFAULT_OUTGOING_WORKER_THREADS = 8
 
     }
 
@@ -62,15 +46,13 @@ class ServerGroup(name: String, incomingAcceptorThreads: Int, incomingWorkerThre
         this.serverGroupId = serverGroupCount.getAndIncrement()
 
         threadPools = ProxyThreadPools(SelectorProvider.provider(),
-                incomingAcceptorThreads,
-                incomingWorkerThreads,
-                outgoingWorkerThreads,
+                threadPoolConfiguration.getAcceptorThreadsNum(),
+                threadPoolConfiguration.getWorkerThreadsNum(),
                 name,
                 serverGroupId)
 
     }
 
-    constructor(name: String) : this(name, DEFAULT_INCOMING_ACCEPTOR_THREADS, DEFAULT_INCOMING_WORKER_THREADS, DEFAULT_OUTGOING_WORKER_THREADS)
 
     /**
      * List of all servers registered to use this ServerGroup. Any access to this list should be synchronized using the
@@ -171,9 +153,9 @@ class ServerGroup(name: String, incomingAcceptorThreads: Int, incomingWorkerThre
      *
      * @return the client-to-proxy acceptor thread pool
      */
-    fun getClientToProxyAcceptorPool(): EventLoopGroup {
-        return threadPools.clientToProxyAcceptorPool
-//        return getThreadPoolsForProtocol(protocol).getClientToProxyAcceptorPool()
+    fun getAcceptorPool(): EventLoopGroup {
+        return threadPools.acceptorPool
+//        return getThreadPoolsForProtocol(protocol).getAcceptorPool()
     }
 
     /**
@@ -181,18 +163,10 @@ class ServerGroup(name: String, incomingAcceptorThreads: Int, incomingWorkerThre
      *
      * @return the client-to-proxy worker thread pool
      */
-    fun getClientToProxyWorkerPool(): EventLoopGroup {
-        return threadPools.clientToProxyWorkerPool
+    fun getWorkerPool(): EventLoopGroup {
+        return threadPools.workerPool
     }
 
-    /**
-     * Retrieves the proxy-to-server worker thread pool for the specified protocol.
-     *
-     * @return the proxy-to-server worker thread pool
-     */
-    fun getProxyToServerWorkerPool(): EventLoopGroup {
-        return threadPools.proxyToServerWorkerPool
-    }
 
     /**
      * @return true if this ServerGroup has already been stopped

@@ -1,21 +1,27 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
+import com.bbz.network.reverseproxy.config.DefaultNetWorkConfig
+import com.bbz.network.reverseproxy.config.DefaultServerConfig
+import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
+import com.bbz.network.reverseproxy.route.RoutePolicy
+import com.bbz.network.reverseproxy.route.impl.RoundRobinPolicy
+import com.bbz.network.reverseproxy.utils.ProxyUtils
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.*
+import io.netty.channel.Channel
+import io.netty.channel.ChannelOption
 import io.netty.channel.epoll.EpollChannelOption
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
-import io.netty.util.ResourceLeakDetector
 import io.netty.util.concurrent.GlobalEventExecutor
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("unused")
-class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup,
+class DefaultReverseProxyServer private constructor(private val serverGroup: ServerGroup,
                                                     private val listenAddress: InetSocketAddress,
                                                     private var idleConnectionTimeout: Int,
                                                     private var connectTimeout: Int,
@@ -24,7 +30,9 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
                                                     private var proxyAlias: String,
                                                     val maxInitialLineLength: Int,
                                                     val maxHeaderSize: Int,
-                                                    val maxChunkSize: Int) : ReverseProxyServer {
+                                                    val maxChunkSize: Int,
+                                                    private val routePolicy: RoutePolicy) : ReverseProxyServer {
+
     private val stopped = AtomicBoolean(false)
     private val allChannels = DefaultChannelGroup("Reverse-Proxy-Server", GlobalEventExecutor.INSTANCE)
 
@@ -34,20 +42,16 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
 
     companion object {
 
-
-        private const val TRAFFIC_SHAPING_CHECK_INTERVAL_MS = 250L
-        private const val MAX_INITIAL_LINE_LENGTH_DEFAULT = 8192
-        private const val MAX_HEADER_SIZE_DEFAULT = 8192 * 2
-        private const val MAX_CHUNK_SIZE_DEFAULT = 8192 * 2
-        private const val FALLBACK_PROXY_ALIAS = "BigBangReverseProxy"
-
-        private val LOG = LoggerFactory.getLogger(DefaultReverseProxyServer::class.java)
+        private val log = LoggerFactory.getLogger(DefaultReverseProxyServer::class.java)
         fun bootstrap(): ReverseProxyServerBootstrap {
             return DefaultReverseProxyServerBootstrap()
         }
 
     }
 
+    override fun getRoutePolice(): RoutePolicy {
+        return routePolicy
+    }
 
     override fun getIdleConnectionTimeout(): Int {
         return idleConnectionTimeout
@@ -66,11 +70,12 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
     }
 
     override fun stop() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        log.error("stop server")
     }
 
     override fun abort() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        log.error("stop abort")
+
     }
 
     override fun getListenAddress(): InetSocketAddress {
@@ -98,17 +103,17 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
      * @return
      */
     private fun createGlobalTrafficShapingHandler(readThrottleBytesPerSecond: Long, writeThrottleBytesPerSecond: Long): GlobalTrafficShapingHandler {
-        val proxyToServerEventLoop = this.serverGroup.getProxyToServerWorkerPool()
+        val proxyToServerEventLoop = this.serverGroup.getWorkerPool()
         return GlobalTrafficShapingHandler(proxyToServerEventLoop,
                 writeThrottleBytesPerSecond,
                 readThrottleBytesPerSecond,
-                TRAFFIC_SHAPING_CHECK_INTERVAL_MS,
+                DefaultNetWorkConfig.TRAFFIC_SHAPING_CHECK_INTERVAL_MS,
                 java.lang.Long.MAX_VALUE)
     }
 
     private fun start(): DefaultReverseProxyServer {
         if (!serverGroup.isStopped()) {
-            LOG.info("Starting reverse proxy at address: " + this.listenAddress)
+            log.info("Starting reverse proxy at address: " + this.listenAddress)
 
             serverGroup.registerProxyServer(this)
 
@@ -117,37 +122,36 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
             throw IllegalStateException("Attempted to start reverse proxy, but proxy's server group is already stopped")
         }
 
-        //注意，这个选项对性能有很大影响，正式发布版本需要移除
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
-//        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED)
+
         return this
     }
 
     private fun doStart() {
-        val initializer = object : ChannelInitializer<Channel>() {
-            @Throws(Exception::class)
-            override fun initChannel(ch: Channel) {
-                ClientToProxyConnection(
-                        this@DefaultReverseProxyServer,
-                        ch.pipeline(),
-                        globalTrafficShapingHandler)
-            }
-        }
+//        val initializer = object : ChannelInitializer<Channel>() {
+//            @Throws(Exception::class)
+//            override fun initChannel(ch: Channel) {
+//                ClientToProxyConnection(
+//                        this@DefaultReverseProxyServer,
+//                        ch.pipeline(),
+//                        globalTrafficShapingHandler)
+//            }
+//        }
         val serverBootstrap = ServerBootstrap()
                 .group(
-                        serverGroup.getClientToProxyAcceptorPool(),
-                        serverGroup.getClientToProxyWorkerPool())
-                .channelFactory(ChannelFactory<ServerChannel> { NioServerSocketChannel() })
+                        serverGroup.getAcceptorPool(),
+                        serverGroup.getWorkerPool())
+                .channel(NioServerSocketChannel::class.java)
                 .option(ChannelOption.SO_BACKLOG, 1024)          // (5)
                 .option(ChannelOption.SO_REUSEADDR, true)
 //                .option(ChannelOption.SO_RCVBUF, 10 * 1024)
 //                .option(ChannelOption.SO_SNDBUF, 10 * 1024)
                 .option(EpollChannelOption.SO_REUSEPORT, true)
+//                .childOption(ChannelOption.AUTO_READ,false)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
-        .childHandler(initializer)
+//                .childHandler(initializer)
+                .childHandler(ReverseProxyInitializer(this))
 
         val future = serverBootstrap.bind(listenAddress)
 
@@ -164,7 +168,7 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
         }
 
 //        this.boundAddress = future.channel().localAddress() as InetSocketAddress
-        LOG.info("Reverse Proxy started at address: " + this.listenAddress)
+        log.info("Reverse Proxy started at address: " + this.listenAddress)
 
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook)
     }
@@ -179,10 +183,10 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
     }
 
     private class DefaultReverseProxyServerBootstrap : ReverseProxyServerBootstrap {
-        private var threadName = "ReverseProxy"
+        private var threadName = DefaultThreadPoolConfig.THREAD_NAME
         private val serverGroup: ServerGroup? = null
         private var listenAddress: InetSocketAddress? = null
-        private var port = 8080
+        private var port = DefaultNetWorkConfig.PORT
         //    private var allowLocalOnly = true
         //    private var sslEngineSource: SslEngineSource? = null
 //    private var authenticateSslClients = true
@@ -191,20 +195,24 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
 //    private var mitmManager: MitmManager? = null
 //    private var filtersSource: HttpFiltersSource = HttpFiltersSourceAdapter()
 //    private var transparent = false
-        private var idleConnectionTimeout = 70
+        private var idleConnectionTimeout = DefaultNetWorkConfig.IDLE_CONNECTION_TIMEOUT_SECOND
         //    private val activityTrackers = ConcurrentLinkedQueue<ActivityTracker>()
-        private var connectTimeout = 40000
+        private var connectTimeout = DefaultNetWorkConfig.CONNECT_TIME_OUT_MS
         //    private var serverResolver: HostResolver = DefaultHostResolver()
         private var readThrottleBytesPerSecond: Long = 0
         private var writeThrottleBytesPerSecond: Long = 0
         //    private var localAddress: InetSocketAddress? = null
         private var proxyAlias: String? = null
-        private var clientToProxyAcceptorThreads = ServerGroup.DEFAULT_INCOMING_ACCEPTOR_THREADS
-        private var clientToProxyWorkerThreads = ServerGroup.DEFAULT_INCOMING_WORKER_THREADS
-        private var proxyToServerWorkerThreads = ServerGroup.DEFAULT_OUTGOING_WORKER_THREADS
-        private var maxInitialLineLength = DefaultReverseProxyServer.MAX_INITIAL_LINE_LENGTH_DEFAULT
-        private var maxHeaderSize = DefaultReverseProxyServer.MAX_HEADER_SIZE_DEFAULT
-        private var maxChunkSize = DefaultReverseProxyServer.MAX_CHUNK_SIZE_DEFAULT
+
+        private var maxInitialLineLength = DefaultNetWorkConfig.MAX_INITIAL_LINE_LENGTH_DEFAULT
+        private var maxHeaderSize = DefaultNetWorkConfig.MAX_HEADER_SIZE_DEFAULT
+        private var maxChunkSize = DefaultNetWorkConfig.MAX_CHUNK_SIZE_DEFAULT
+        private var threadPoolConfiguration = ThreadPoolConfiguration()
+        /**
+         * 路由策略，缺省采用轮训策略
+         */
+        private var routePolice: RoutePolicy = RoundRobinPolicy()
+
         override fun withName(name: String): ReverseProxyServerBootstrap {
             this.threadName = name
             return this
@@ -236,11 +244,6 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
             return this
         }
 
-//    override fun withNetworkInterface(inetSocketAddress: InetSocketAddress): ReverseProxyServerBootstrap {
-//        this.localAddress = inetSocketAddress
-//        return this
-//    }
-
         override fun withMaxInitialLineLength(maxInitialLineLength: Int): ReverseProxyServerBootstrap {
             this.maxInitialLineLength = maxInitialLineLength
             return this
@@ -249,6 +252,13 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
         override fun withMaxHeaderSize(maxHeaderSize: Int): ReverseProxyServerBootstrap {
             this.maxHeaderSize = maxHeaderSize
             return this
+        }
+
+
+        override fun withRoutePolice(routePolicy: RoutePolicy): ReverseProxyServerBootstrap {
+            this.routePolice = routePolicy
+            return this
+
         }
 
         override fun withMaxChunkSize(maxChunkSize: Int): ReverseProxyServerBootstrap {
@@ -261,10 +271,8 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
             return this
         }
 
-        override fun withThreadPoolConfiguration(configuration: ThreadPoolConfiguration): ReverseProxyServerBootstrap {
-            this.clientToProxyAcceptorThreads = configuration.getAcceptorThreads()
-            this.clientToProxyWorkerThreads = configuration.getClientToProxyWorkerThreads()
-            this.proxyToServerWorkerThreads = configuration.getProxyToServerWorkerThreads()
+        override fun withThreadPoolConfiguration(threadPoolConfiguration: ThreadPoolConfiguration): ReverseProxyServerBootstrap {
+            this.threadPoolConfiguration = threadPoolConfiguration
             return this
         }
 
@@ -274,15 +282,16 @@ class DefaultReverseProxyServer private constructor(val serverGroup: ServerGroup
 
         private fun build(): DefaultReverseProxyServer {
             val serverGroup: ServerGroup = serverGroup
-                    ?: ServerGroup(threadName, clientToProxyAcceptorThreads, clientToProxyWorkerThreads, proxyToServerWorkerThreads)
+                    ?: ServerGroup(threadName, threadPoolConfiguration)
 
             val listenAddress = listenAddress ?: InetSocketAddress(port)
-            val proxyAlias = (proxyAlias) ?: ProxyUtils.getHostName() ?: FALLBACK_PROXY_ALIAS
+            val proxyAlias = (proxyAlias) ?: ProxyUtils.getHostName()
+            ?: DefaultServerConfig.FALLBACK_PROXY_ALIAS
 
             return DefaultReverseProxyServer(serverGroup,
                     listenAddress,
                     idleConnectionTimeout, connectTimeout, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
-                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize
+                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize, routePolice
             )
         }
     }

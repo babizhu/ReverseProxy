@@ -1,52 +1,52 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
-enum class ConnectionState(private val partOfConnectionFlow: Boolean) {
+enum class ConnectionState {
     /**
      * Connection attempting to connect.
      */
-    CONNECTING(true),
+    CONNECTING,
 
     /**
      * In the middle of doing an SSL handshake.
      */
-    HANDSHAKING(true),
+    HANDSHAKING,
 
     /**
      * In the process of negotiating an HTTP CONNECT from the client.
      */
-    NEGOTIATING_CONNECT(true),
+    NEGOTIATING_CONNECT,
 
     /**
      * When forwarding a CONNECT to a chained proxy, we await the CONNECTION_OK
      * message from the proxy.
      */
-    AWAITING_CONNECT_OK(true),
+    AWAITING_CONNECT_OK,
 
     /**
      * Connected but waiting for proxy authentication.
      */
-    AWAITING_PROXY_AUTHENTICATION(false),
+    AWAITING_PROXY_AUTHENTICATION,
 
     /**
      * Connected and awaiting initial message (e.g. HttpRequest or
      * HttpResponse).
      */
-    AWAITING_INITIAL(false),
+    AWAITING_INITIAL,
 
     /**
      * Connected and awaiting HttpContent chunk.
      */
-    AWAITING_CHUNK(false),
+    AWAITING_CHUNK,
 
     /**
      * We've asked the client to disconnect, but it hasn't yet.
      */
-    DISCONNECT_REQUESTED(false),
+    DISCONNECT_REQUESTED,
 
     /**
      * Disconnected
      */
-    DISCONNECTED(false);
+    DISCONNECTED;
 
 //    private final boolean partOfConnectionFlow;
 //
@@ -75,12 +75,12 @@ enum class ConnectionState(private val partOfConnectionFlow: Boolean) {
      *
      * @return true if the connection state is {@link #DISCONNECT_REQUESTED} or {@link #DISCONNECTED}, otherwise false
      */
-    fun isDisconnectingOrDisconnected():Boolean {
-        return this == DISCONNECT_REQUESTED || this == DISCONNECTED;
-    }
-
-    fun isPartOfConnectionFlow(): Boolean {
-        return partOfConnectionFlow
-
-    }
+//    fun isDisconnectingOrDisconnected():Boolean {
+//        return this == DISCONNECT_REQUESTED || this == DISCONNECTED;
+//    }
+//
+//    fun isPartOfConnectionFlow(): Boolean {
+//        return partOfConnectionFlow
+//
+//    }
 }

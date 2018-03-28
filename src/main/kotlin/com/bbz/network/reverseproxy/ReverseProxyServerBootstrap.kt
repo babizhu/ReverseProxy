@@ -1,6 +1,7 @@
 package com.bbz.network.reverseproxy
 
-import com.bbz.network.reverseproxy.impl.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.core.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.route.RoutePolicy
 import java.net.InetSocketAddress
 
 interface ReverseProxyServerBootstrap {
@@ -286,6 +287,8 @@ interface ReverseProxyServerBootstrap {
 
     fun withMaxChunkSize(maxChunkSize: Int): ReverseProxyServerBootstrap
 
+    fun withRoutePolice(routePolicy: RoutePolicy): ReverseProxyServerBootstrap
+
     /**
      * When true, the proxy will accept requests that appear to be directed at an origin server (i.e. the URI in the HTTP
      * request will contain an origin-form, rather than an absolute-form, as specified in RFC 7230, section 5.3).
@@ -317,8 +320,8 @@ interface ReverseProxyServerBootstrap {
     /**
      * Set the configuration parameters for the proxy's thread pools.
      *
-     * @param configuration thread pool configuration
+     * @param threadPoolConfiguration thread pool configuration
      * @return proxy server bootstrap for chaining
      */
-    fun withThreadPoolConfiguration(configuration: ThreadPoolConfiguration): ReverseProxyServerBootstrap
+    fun withThreadPoolConfiguration(threadPoolConfiguration: ThreadPoolConfiguration): ReverseProxyServerBootstrap
 }
