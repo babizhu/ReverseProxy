@@ -101,7 +101,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         when (remoteConnectionState) {
             ConnectionState.AWAITING_INITIAL -> {
                 if (channel.isActive) {
-                    channel.writeAndFlush(msg).addListener(ChannelFutureListener { it: ChannelFuture ->
+                    channel.writeAndFlush(msg).addListener({
                         if (it.isSuccess) {
                             // was able to flush out data, start to read the next chunk
                             clientToProxyConnection.resumeRead()
@@ -115,7 +115,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 }
             }
             ConnectionState.DISCONNECTED -> {
-                remoteAddress = calcRemoteAddress(msg as HttpRequest,clientCtx)
+                remoteAddress = getRemoteAddress(msg as HttpRequest,clientCtx)
                 this.currentRequest = msg
                 connectAndWrite()
             }
@@ -124,7 +124,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
             }
 
             else -> {
-                log.error("奇怪的状态啊{}", remoteConnectionState)
+                log.error("不应该到达奇怪的状态啊{}", remoteConnectionState)
             }
         }
 
@@ -133,7 +133,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     /**
      * 根据request计算应该连接哪个远程服务器，未来重点扩充地点
      */
-    private fun calcRemoteAddress(currentRequest: HttpRequest,clientCtx: ChannelHandlerContext): InetSocketAddress {
+    private fun getRemoteAddress(currentRequest: HttpRequest, clientCtx: ChannelHandlerContext): InetSocketAddress {
 
         return proxyServer.getRoutePolice().getUrl(currentRequest,clientCtx)
     }

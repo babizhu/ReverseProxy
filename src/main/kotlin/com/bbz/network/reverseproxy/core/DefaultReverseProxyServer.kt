@@ -3,15 +3,14 @@ package com.bbz.network.reverseproxy.core
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
 import com.bbz.network.reverseproxy.config.DefaultNetWorkConfig
-import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 import com.bbz.network.reverseproxy.config.DefaultServerConfig
+import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 import com.bbz.network.reverseproxy.route.RoutePolicy
-import com.bbz.network.reverseproxy.route.impl.IpHashPolicy
 import com.bbz.network.reverseproxy.route.impl.RoundRobinPolicy
 import com.bbz.network.reverseproxy.utils.ProxyUtils
-
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.*
+import io.netty.channel.Channel
+import io.netty.channel.ChannelOption
 import io.netty.channel.epoll.EpollChannelOption
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
@@ -53,6 +52,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
     override fun getRoutePolice(): RoutePolicy {
         return routePolicy
     }
+
     override fun getIdleConnectionTimeout(): Int {
         return idleConnectionTimeout
     }
@@ -255,7 +255,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         }
 
 
-        override fun withRoutePolice(routePolicy: RoutePolicy):ReverseProxyServerBootstrap{
+        override fun withRoutePolice(routePolicy: RoutePolicy): ReverseProxyServerBootstrap {
             this.routePolice = routePolicy
             return this
 
@@ -291,7 +291,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             return DefaultReverseProxyServer(serverGroup,
                     listenAddress,
                     idleConnectionTimeout, connectTimeout, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
-                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize,routePolice
+                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize, routePolice
             )
         }
     }
