@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.ChannelFuture
@@ -68,13 +68,10 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                         ch.pipeline().addLast("handler", this@ProxyToServerConnection)
                     }
                 })
-//                .option(ChannelOption.AUTO_READ, false)
 
         remoteConnectionState = ConnectionState.CONNECTING
 
-//        channel = future.channel()
-
-        val xx = fun(it: Future<in Void>) {
+        val writeHandler = fun(it: Future<in Void>) {
             if (it.isSuccess) {
                 clientToProxyConnection.resumeRead()
             } else {
@@ -86,10 +83,10 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
             if (it.isSuccess) {
                 remoteConnectionState = ConnectionState.AWAITING_INITIAL
                 if (waitToWriteHttpContent == null) {
-                    channel.writeAndFlush(currentRequest).addListener(xx)
+                    channel.writeAndFlush(currentRequest).addListener(writeHandler)
                 } else {
                     channel.write(currentRequest)
-                    channel.writeAndFlush(waitToWriteHttpContent).addListener(xx)
+                    channel.writeAndFlush(waitToWriteHttpContent).addListener(writeHandler)
 
                 }
             } else {
@@ -100,8 +97,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
 
-    fun writeToServer(msg: HttpObject) {
-
+    fun writeToServer(msg: HttpObject,clientCtx:ChannelHandlerContext) {
         when (remoteConnectionState) {
             ConnectionState.AWAITING_INITIAL -> {
                 if (channel.isActive) {
@@ -119,7 +115,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 }
             }
             ConnectionState.DISCONNECTED -> {
-                remoteAddress = calcRemoteAddress(msg as HttpRequest)
+                remoteAddress = calcRemoteAddress(msg as HttpRequest,clientCtx)
                 this.currentRequest = msg
                 connectAndWrite()
             }
@@ -137,9 +133,9 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     /**
      * 根据request计算应该连接哪个远程服务器，未来重点扩充地点
      */
-    private fun calcRemoteAddress(currentRequest: HttpRequest): InetSocketAddress {
+    private fun calcRemoteAddress(currentRequest: HttpRequest,clientCtx: ChannelHandlerContext): InetSocketAddress {
 
-        return InetSocketAddress(8080)
+        return proxyServer.getRoutePolice().getUrl(currentRequest,clientCtx)
     }
 
 

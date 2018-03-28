@@ -1,10 +1,13 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
 import com.bbz.network.reverseproxy.config.DefaultNetWorkConfig
 import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 import com.bbz.network.reverseproxy.config.DefaultServerConfig
+import com.bbz.network.reverseproxy.route.RoutePolicy
+import com.bbz.network.reverseproxy.route.impl.IpHashPolicy
+import com.bbz.network.reverseproxy.route.impl.RoundRobinPolicy
 import com.bbz.network.reverseproxy.utils.ProxyUtils
 
 import io.netty.bootstrap.ServerBootstrap
@@ -13,7 +16,6 @@ import io.netty.channel.epoll.EpollChannelOption
 import io.netty.channel.group.DefaultChannelGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.traffic.GlobalTrafficShapingHandler
-import io.netty.util.ResourceLeakDetector
 import io.netty.util.concurrent.GlobalEventExecutor
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
@@ -29,7 +31,9 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
                                                     private var proxyAlias: String,
                                                     val maxInitialLineLength: Int,
                                                     val maxHeaderSize: Int,
-                                                    val maxChunkSize: Int) : ReverseProxyServer {
+                                                    val maxChunkSize: Int,
+                                                    private val routePolicy: RoutePolicy) : ReverseProxyServer {
+
     private val stopped = AtomicBoolean(false)
     private val allChannels = DefaultChannelGroup("Reverse-Proxy-Server", GlobalEventExecutor.INSTANCE)
 
@@ -46,7 +50,9 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 
     }
 
-
+    override fun getRoutePolice(): RoutePolicy {
+        return routePolicy
+    }
     override fun getIdleConnectionTimeout(): Int {
         return idleConnectionTimeout
     }
@@ -64,11 +70,12 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
     }
 
     override fun stop() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        log.error("stop server")
     }
 
     override fun abort() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        log.error("stop abort")
+
     }
 
     override fun getListenAddress(): InetSocketAddress {
@@ -201,6 +208,11 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         private var maxHeaderSize = DefaultNetWorkConfig.MAX_HEADER_SIZE_DEFAULT
         private var maxChunkSize = DefaultNetWorkConfig.MAX_CHUNK_SIZE_DEFAULT
         private var threadPoolConfiguration = ThreadPoolConfiguration()
+        /**
+         * 路由策略，缺省采用轮训策略
+         */
+        private var routePolice: RoutePolicy = RoundRobinPolicy()
+
         override fun withName(name: String): ReverseProxyServerBootstrap {
             this.threadName = name
             return this
@@ -242,6 +254,13 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             return this
         }
 
+
+        override fun withRoutePolice(routePolicy: RoutePolicy):ReverseProxyServerBootstrap{
+            this.routePolice = routePolicy
+            return this
+
+        }
+
         override fun withMaxChunkSize(maxChunkSize: Int): ReverseProxyServerBootstrap {
             this.maxChunkSize = maxChunkSize
             return this
@@ -272,7 +291,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             return DefaultReverseProxyServer(serverGroup,
                     listenAddress,
                     idleConnectionTimeout, connectTimeout, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
-                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize
+                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize,routePolice
             )
         }
     }

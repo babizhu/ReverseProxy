@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel

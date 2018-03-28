@@ -45,6 +45,16 @@
       <artifactId>netty-all</artifactId>
       <version>4.1.22.Final</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>fastjson</artifactId>
+      <version>1.2.46</version>
+    </dependency>
   </dependencies>
 
   <build>

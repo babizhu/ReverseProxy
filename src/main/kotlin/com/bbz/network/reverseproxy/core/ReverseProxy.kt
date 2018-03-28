@@ -1,9 +1,4 @@
-package com.bbz.network.reverseproxy.impl
-
-import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.ChannelOption
-import io.netty.channel.nio.NioEventLoopGroup
-import io.netty.channel.socket.nio.NioServerSocketChannel
+package com.bbz.network.reverseproxy.core
 
 
 class ReverseProxy {

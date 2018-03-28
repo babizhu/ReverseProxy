@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ThreadFactory
@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Suppress("PrivatePropertyName")
 /**
  * @param name the user-supplied name of this proxy
- * @param category the type of threads this factory is creating (acceptor, client-to-proxy worker, proxy-to-server worker)
+ * @param category the type of threads this factory is creating (acceptor, proxy worker)
  * @param uniqueServerGroupId a unique number for the server group creating this thread factory, to differentiate multiple proxy instances with the same name
  */
 class CategorizedThreadFactory(private val name: String, private val category: String, private val uniqueServerGroupId: Int) : ThreadFactory {
@@ -24,8 +24,6 @@ class CategorizedThreadFactory(private val name: String, private val category: S
     /**
      * Exception handler for proxy threads. Logs the name of the thread and the exception that was caught.
      */
-
-
     override fun newThread(r: Runnable): Thread {
         val t = Thread(r, name + "-" + uniqueServerGroupId + "-" + category + "-" + threadCount.getAndIncrement())
 

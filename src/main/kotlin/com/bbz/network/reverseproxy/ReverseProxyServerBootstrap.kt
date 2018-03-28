@@ -1,6 +1,7 @@
 package com.bbz.network.reverseproxy
 
-import com.bbz.network.reverseproxy.impl.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.core.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.route.RoutePolicy
 import java.net.InetSocketAddress
 
 interface ReverseProxyServerBootstrap {
@@ -285,6 +286,8 @@ interface ReverseProxyServerBootstrap {
     fun withMaxHeaderSize(maxHeaderSize: Int): ReverseProxyServerBootstrap
 
     fun withMaxChunkSize(maxChunkSize: Int): ReverseProxyServerBootstrap
+
+    fun withRoutePolice(routePolicy: RoutePolicy): ReverseProxyServerBootstrap
 
     /**
      * When true, the proxy will accept requests that appear to be directed at an origin server (i.e. the URI in the HTTP

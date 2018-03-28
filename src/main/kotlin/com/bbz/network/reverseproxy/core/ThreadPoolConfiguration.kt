@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 

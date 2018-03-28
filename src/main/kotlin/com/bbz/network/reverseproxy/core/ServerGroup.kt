@@ -1,7 +1,6 @@
-package com.bbz.network.reverseproxy.impl
+package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.ReverseProxyServer
-import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 import io.netty.channel.EventLoopGroup
 import org.slf4j.LoggerFactory
 import java.nio.channels.spi.SelectorProvider

@@ -1,6 +1,7 @@
 package com.bbz.network.reverseproxy
 
-import com.bbz.network.reverseproxy.impl.DefaultReverseProxyServer
+import com.bbz.network.reverseproxy.core.DefaultReverseProxyServer
+import com.bbz.network.reverseproxy.route.impl.IpHashPolicy
 import io.netty.util.ResourceLeakDetector
 
 //class Launcher {
@@ -31,6 +32,7 @@ fun main(args: Array<String>) {
     val bootstrap = DefaultReverseProxyServer.bootstrap()
 //            .bootstrapFromFile("./littleproxy.properties")
             .withPort(8000)
+//            .withRoutePolice(IpHashPolicy())
             .withConnectTimeout(3000)
     bootstrap.start()
 
