@@ -4,10 +4,11 @@ import com.alibaba.fastjson.JSONObject
 import com.bbz.network.reverseproxy.pojo.BackendServer
 import com.bbz.network.reverseproxy.route.RoutePolicy
 import com.bbz.network.reverseproxy.utils.JsonUtils
-import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.Channel
 import io.netty.handler.codec.http.HttpRequest
 import java.net.InetSocketAddress
 
+@Suppress("unused")
 /**
  * ip hash 策略
  * 来自nginx
@@ -29,8 +30,8 @@ class IpHashPolicy : RoutePolicy {
         }
     }
 
-    override fun getUrl(request: HttpRequest, ctx: ChannelHandlerContext): InetSocketAddress {
-        val ip = (ctx.channel().remoteAddress() as InetSocketAddress)
+    override fun getBackendServerAddress(request: HttpRequest, channel: Channel): InetSocketAddress {
+        val ip = (channel.remoteAddress() as InetSocketAddress)
         val index = hash(ip)
         return backendServer[index].address
     }

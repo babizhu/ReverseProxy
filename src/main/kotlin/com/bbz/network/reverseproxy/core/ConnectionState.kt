@@ -2,6 +2,10 @@ package com.bbz.network.reverseproxy.core
 
 enum class ConnectionState {
     /**
+     * 远程服务器连接成功
+     */
+    ESTABLISHED,
+    /**
      * Connection attempting to connect.
      */
     CONNECTING,
@@ -32,6 +36,7 @@ enum class ConnectionState {
      * HttpResponse).
      */
     AWAITING_INITIAL,
+
 
     /**
      * Connected and awaiting HttpContent chunk.

@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONObject
 import com.bbz.network.reverseproxy.pojo.BackendServer
 import com.bbz.network.reverseproxy.route.RoutePolicy
 import com.bbz.network.reverseproxy.utils.JsonUtils
-import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.Channel
 import io.netty.handler.codec.http.HttpRequest
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
@@ -58,13 +58,8 @@ class RoundRobinPolicy : RoutePolicy {
         }
     }
 
-    override fun getUrl(request: HttpRequest, ctx: ChannelHandlerContext): InetSocketAddress {
-        var server = roundRobinPolicy()
-        if (server == null) {
-            log.error("无法找到合适的服务器")
-            throw Exception("无法找到合适的服务器")
-        }
-        return server.address
+    override fun getBackendServerAddress(request: HttpRequest, channel: Channel): InetSocketAddress? {
+        return roundRobinPolicy()?.address
     }
 
     /**

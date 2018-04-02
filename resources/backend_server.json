@@ -3,18 +3,20 @@
     {
       "ip": "localhost",
       "port": 9090,
-      "weight": 4,
-      "down":false
-    }, {
+      "weight": 4000,
+      "down": false
+    },
+    {
       "ip": "127.0.0.1",
       "port": 9091,
       "weight": 1,
-      "down":false
-    }, {
-      "ip": "127.0.0.1",
-      "port": 9092,
-      "weight": 2,
-      "down":false
+      "down": false
+    },
+    {
+            "ip": "127.0.0.1",
+            "port": 9092,
+            "weight": 2,
+            "down":false
+          }
+      ]
     }
-  ]
-}

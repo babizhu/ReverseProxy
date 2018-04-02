@@ -44,7 +44,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
         disconnect()
     }
 
-    fun disconnect() {
+    open fun disconnect() {
         if (channel.isActive) {
             closeOnFlush()
         }
@@ -85,10 +85,20 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
 //        }
 //    }
 
-    protected fun releaseHttpContent(msg:Any?){
-        msg?.let {
-            ReferenceCountUtil.release(it)
-
-        }
+    protected fun releaseHttpContent(msg: Any) {
+        ReferenceCountUtil.release(msg)
     }
+
+    protected fun stopAutoReading() {
+        log.debug("Stopped reading")
+        this.channel.config().isAutoRead = false
+    }
+
+//    /**
+//     * Call this to resume reading.
+//     */
+//    protected fun resumeReading() {
+//        log.debug("Resumed reading")
+//        this.channel.config().isAutoRead = true
+//    }
 }
