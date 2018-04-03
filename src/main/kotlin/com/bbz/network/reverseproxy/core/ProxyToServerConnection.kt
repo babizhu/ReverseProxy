@@ -7,9 +7,7 @@ import io.netty.channel.ChannelOption
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.codec.http.HttpClientCodec
-import io.netty.handler.codec.http.HttpContent
 import io.netty.handler.codec.http.HttpObject
-import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.timeout.IdleStateHandler
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
@@ -30,21 +28,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         connect()
     }
 
-    /**
-     * 远程服务器的连接状态
-     */
-    private var remoteConnectionState = ConnectionState.DISCONNECTED
-
-    private lateinit var currentRequest: HttpRequest
-
-    /**
-     * 暂存随着HttpRequest一起解析出来的HttpContent，目前来看有且仅有一个
-     */
-    private var waitToWriteHttpContent: HttpContent? = null
-
-
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-//        throw Exception("avcd")
         clientToProxyConnection.writeToClient(msg)
     }
 
@@ -72,28 +56,14 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                         ch.pipeline().addLast("handler", this@ProxyToServerConnection)
                     }
                 })
-
-
-//        remoteConnectionState = ConnectionState.CONNECTING
-
-//        val writeHandler = fun(it: Future<in Void>) {
-//            if (it.isSuccess) {
-//                clientToProxyConnection.resumeRead()
-//            } else {
-//                exceptionOccur(it.cause())
-//            }
-//        }
-
         b.connect(backendServerAddress).addListener({
             if (it.isSuccess) {
                 clientToProxyConnection.serverConnectionSucceeded()
             } else {
                 clientToProxyConnection.serverConnectionFailed(it.cause())
-//                releaseHttpContent(waitToWriteHttpContent)
             }
         })
     }
-
 
     fun writeToServer(msg: HttpObject) {
 
@@ -107,11 +77,5 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 disconnect()
             }
         })
-//        } else {
-//
-//            log.error("连接断了!!!!!!!!!!!!!!!!!!!!!!!!!!")
-//        }
     }
-
-
 }
