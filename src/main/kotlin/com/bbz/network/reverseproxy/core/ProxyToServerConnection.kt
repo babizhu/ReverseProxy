@@ -73,7 +73,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         channel.writeAndFlush(msg).addListener({
             if (it.isSuccess) {
                 // was able to flush out data, start to read the next chunk
-//                clientToProxyConnection.resumeRead()
+                clientToProxyConnection.resumeRead()
             } else {
                 exceptionOccur(it.cause())
             }
