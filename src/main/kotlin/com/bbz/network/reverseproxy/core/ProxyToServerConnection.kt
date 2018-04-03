@@ -3,6 +3,7 @@ package com.bbz.network.reverseproxy.core
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInitializer
+import io.netty.channel.ChannelOption
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.codec.http.HttpClientCodec
@@ -60,6 +61,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         val b = Bootstrap()
         b.group(clientToProxyConnection.eventloop())
                 .channel(NioSocketChannel::class.java)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServer.getConnectTimeoutMs())
                 .handler(object : ChannelInitializer<SocketChannel>() {
                     override fun initChannel(ch: SocketChannel) {
                         ch.pipeline().addLast("codec", HttpClientCodec())
@@ -70,6 +72,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                         ch.pipeline().addLast("handler", this@ProxyToServerConnection)
                     }
                 })
+
 
 //        remoteConnectionState = ConnectionState.CONNECTING
 
@@ -83,7 +86,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
 
         b.connect(backendServerAddress).addListener({
             if (it.isSuccess) {
-                clientToProxyConnection.serverConnectionSucces()
+                clientToProxyConnection.serverConnectionSucceeded()
             } else {
                 clientToProxyConnection.serverConnectionFailed(it.cause())
 //                releaseHttpContent(waitToWriteHttpContent)

@@ -13,6 +13,9 @@ object DefaultNetWorkConfig {
      */
     const val PORT = 8000
 
+    /**
+     * Returns the maximum time to wait, in milliseconds, to connect to a server.
+     */
     const val CONNECT_TIME_OUT_MS = 40000
     const val IDLE_CONNECTION_TIMEOUT_SECOND = 70
 }

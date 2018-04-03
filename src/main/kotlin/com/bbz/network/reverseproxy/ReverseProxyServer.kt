@@ -11,12 +11,12 @@ interface ReverseProxyServer {
     /**
      * Returns the maximum time to wait, in milliseconds, to connect to a server.
      */
-    fun getConnectTimeout(): Int
+    fun getConnectTimeoutMs(): Int
 
     /**
      * Sets the maximum time to wait, in milliseconds, to connect to a server.
      */
-    fun setConnectTimeout(connectTimeoutMs: Int)
+    fun setConnectTimeoutMs(connectTimeoutMs: Int)
 
     /**
      *

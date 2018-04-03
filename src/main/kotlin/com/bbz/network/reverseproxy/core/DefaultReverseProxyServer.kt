@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class DefaultReverseProxyServer private constructor(private val serverGroup: ServerGroup,
                                                     private val listenAddress: InetSocketAddress,
                                                     private var idleConnectionTimeout: Int,
-                                                    private var connectTimeout: Int,
+                                                    private var connectTimeoutMs: Int,
                                                     readThrottleBytesPerSecond: Long,
                                                     writeThrottleBytesPerSecond: Long,
                                                     private var proxyAlias: String,
@@ -61,12 +61,12 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         this.idleConnectionTimeout = idleConnectionTimeout
     }
 
-    override fun getConnectTimeout(): Int {
-        return connectTimeout
+    override fun getConnectTimeoutMs(): Int {
+        return connectTimeoutMs
     }
 
-    override fun setConnectTimeout(connectTimeoutMs: Int) {
-        this.connectTimeout = connectTimeoutMs
+    override fun setConnectTimeoutMs(connectTimeoutMs: Int) {
+        this.connectTimeoutMs = connectTimeoutMs
     }
 
     override fun stop() {
@@ -197,7 +197,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 //    private var transparent = false
         private var idleConnectionTimeout = DefaultNetWorkConfig.IDLE_CONNECTION_TIMEOUT_SECOND
         //    private val activityTrackers = ConcurrentLinkedQueue<ActivityTracker>()
-        private var connectTimeout = DefaultNetWorkConfig.CONNECT_TIME_OUT_MS
+        private var connectTimeoutMs = DefaultNetWorkConfig.CONNECT_TIME_OUT_MS
         //    private var serverResolver: HostResolver = DefaultHostResolver()
         private var readThrottleBytesPerSecond: Long = 0
         private var writeThrottleBytesPerSecond: Long = 0
@@ -234,7 +234,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         }
 
         override fun withConnectTimeout(connectTimeout: Int): ReverseProxyServerBootstrap {
-            this.connectTimeout = connectTimeout
+            this.connectTimeoutMs = connectTimeout
             return this
         }
 
@@ -290,7 +290,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 
             return DefaultReverseProxyServer(serverGroup,
                     listenAddress,
-                    idleConnectionTimeout, connectTimeout, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
+                    idleConnectionTimeout, connectTimeoutMs, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
                     proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize, routePolice
             )
         }

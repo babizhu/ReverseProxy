@@ -13,10 +13,10 @@
       "down": false
     },
     {
-            "ip": "127.0.0.1",
-            "port": 9092,
-            "weight": 2,
-            "down":false
-          }
-      ]
+      "ip": "127.0.0.1",
+      "port": 9092,
+      "weight": 2,
+      "down": false
     }
+  ]
+}

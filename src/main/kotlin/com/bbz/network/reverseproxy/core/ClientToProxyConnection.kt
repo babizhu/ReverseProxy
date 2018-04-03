@@ -131,7 +131,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     /**
      * 服务器连接成功
      */
-    internal fun serverConnectionSucces() {
+    internal fun serverConnectionSucceeded() {
         log.debug(
                 "Connection to upstream server or chained proxy success: {} ", backendServerAddress)
         state = ConnectionState.ESTABLISHED
