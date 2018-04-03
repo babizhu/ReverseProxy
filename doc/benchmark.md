@@ -1,9 +1,19 @@
 # ReverseProxy 性能比较
 
-采用netty自带的HexDumpProxy作为性能基准
+采用netty自带的HexDumpProxy作为性能基准tm
 
 系统架构：
     ab--代理服务器---vertx做的一个简单web服务器
+## 代码修改
+
+* Launcher.kt
+    
+    修改ResourceLeakDetector.Level    
+    
+* logback.xml
+
+    修改日志输出类型
+    
     
 ## 性能
 
@@ -38,7 +48,7 @@
 * Transfer rate:          3295.17 [Kbytes/sec] received
  
  
-`  ab -n 1000000 -r -c 1000 http://localhost:8000/test（不带-k参数）``
+` ab -n 1000000 -r -c 1000 http://localhost:8000/test（不带-k参数）`
 
 * Concurrency Level:      1000                                                                                                            
 * Time taken for tests:   56.786 seconds                                                                                                  
