@@ -10,9 +10,9 @@ import java.net.InetSocketAddress
 class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyConnection(proxyServer) {
 
     /**
-     * 自己的状态
+     * 当前的状态
      */
-    private var state = ConnectionState.DISCONNECTED
+    private var state = ConnectionState.BACKEND_SERVER_DISCONNECTED
 
     private var proxyToServerConnection: ProxyToServerConnection? = null
     private var currentRequest: HttpRequest? = null
@@ -34,8 +34,6 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             this.currentRequest = request
         } else {
             writeBadGateway(ErrorCode.BACKEND_SERVER_NOT_FOUND)
-            state = ConnectionState.DISCONNECT_REQUESTED
-
         }
     }
 
@@ -45,52 +43,55 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             ConnectionState.ESTABLISHED -> {
                 proxyToServerConnection!!.writeToServer(msg as HttpObject)
             }
-            ConnectionState.DISCONNECT_REQUESTED -> {
-                /**
-                 * netty自带的http解码器一次性会解析两个部分出来：
-                 * 一个是http request，一个是http content（如果没有则是empty content）
-                 * 如果在获取http request之后解析backend server address失败，即使调用了close()，
-                 * 系统还是会调用channelRead()，这里不手动释放msg的话，会造成内存泄漏
-                 */
-                releaseHttpContent(msg)
-            }
-            ConnectionState.DISCONNECTED -> {
+//            ConnectionState.DISCONNECT_REQUESTED -> {
+//                /**
+//                 * netty自带的http解码器一次性会解析两个部分出来：
+//                 * 一个是http request，一个是http content（如果没有则是empty content）
+//                 * 如果在获取http request之后解析backend server address失败，即使调用了close()，
+//                 * 系统还是会调用channelRead()，这里不手动释放msg的话，会造成内存泄漏
+//                 */
+//                releaseHttpContent(msg)
+//            }
+            ConnectionState.BACKEND_SERVER_DISCONNECTED -> {
                 when (msg) {
                     is HttpRequest -> {
-                        if( msg.decoderResult().isFailure){
+
+                        if (msg.decoderResult().isFailure) {
                             writeBadGateway(ErrorCode.DECODE_FAILURE)
                             return
                         }
+                        channel.config().isAutoRead = false
                         connectToBackendServer(msg)
                     }
                     is HttpContent -> this.waitToWriteHttpContent = msg
                     else -> log.error("为什么达到这个状态？msg = {}", msg)
                 }
             }
-
             else -> log.error("为什么达到这个状态？msg = {}", msg)
-
-
         }
 
     }
 
 
     override fun disconnect() {
-        state = ConnectionState.DISCONNECT_REQUESTED
+//        state = ConnectionState.DISCONNECT_REQUESTED
+
+        log.debug("disconnect:{}",channel)
         super.disconnect()
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
+
         log.debug("{} channelInactive", ctx.channel())
+        waitToWriteHttpContent?.let {
+            releaseHttpContent(it)
+        }
         proxyToServerConnection?.disconnect()
     }
 
     @Suppress("OverridingDeprecatedMember")
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         exceptionOccur(cause)
-        disconnect()
-
     }
 
 
@@ -120,30 +121,25 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
                 backendServerAddress,
                 cause)
         writeBadGateway(cause)
-
-        waitToWriteHttpContent?.let {
-            releaseHttpContent(it)
-//            waitToWriteHttpContent = null
-        }
-        state = ConnectionState.DISCONNECT_REQUESTED
     }
 
     /**
      * 服务器连接成功
      */
     internal fun serverConnectionSucceeded() {
-        log.debug(
-                "Connection to upstream server or chained proxy success: {} ", backendServerAddress)
+        log.debug("Connection to upstream server success: {}", backendServerAddress)
         state = ConnectionState.ESTABLISHED
         proxyToServerConnection!!.writeToServer(currentRequest!!)
         waitToWriteHttpContent?.let {
             proxyToServerConnection!!.writeToServer(it)
+            waitToWriteHttpContent = null//以免disconnect的时候执行错误的release
         }
 
     }
 
     private fun writeBadGateway(errorCode: ErrorCode) {
-        log.error("msg decode failed {}",errorCode)
+
+        log.error("writeBadGateway failed {}", errorCode)
 
         val body = "Bad Gateway: " + currentRequest?.uri() + "<br />" + errorCode
         val response = ProxyUtils.createFullHttpResponse(HttpVersion.HTTP_1_0, HttpResponseStatus.BAD_GATEWAY, body)
@@ -156,9 +152,13 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
         respondWithShortCircuitResponse(response)
     }
 
+    /**
+     * 直接响应客户端，通常是报500错，完成之后主动关闭连接
+     */
     private fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
         // we are sending a response to the client, so we are done handling this request
         this.currentRequest = null
+//        state = ConnectionState.DISCONNECT_REQUESTED
 
 
         // allow short-circuit messages to close the connection. normally the Connection header would be stripped when modifying
@@ -191,7 +191,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     /**
-     * 根据request计算应该连接哪个远程服务器，未来重点扩充地点
+     * 根据request计算应该连接哪个远程服务器
      */
     private fun getBackendServerAddress(currentRequest: HttpRequest): InetSocketAddress? {
 

@@ -32,7 +32,7 @@ class ClientToProxyConnectionTest {
      *
      */
     @Test
-    fun noBackendServerAddress(){
+    fun noBackendServerAddress() {
 
     }
 
@@ -55,7 +55,22 @@ class ClientToProxyConnectionTest {
      *   目前触发了serverConnectionFailed()之后就直接触发channelInactive()了，没有执行到channelRead()方法
      */
     @Test
-    fun connectFailed(){
+    fun connectFailed() {
+
+    }
+
+
+    /**
+     * 后端服务器500错误，考虑内存泄漏
+     * 测试方法：
+     * 需要手动发送http请求，具体如下：
+     *      telnet localhost:8000
+     *      POST /post HTTP/1.1
+     *      Content-Length: 2
+     * 如果后端是nginx 就会产生500 错误
+     */
+    @Test
+    fun backendServer500Error() {
 
     }
 }

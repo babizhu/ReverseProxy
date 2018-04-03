@@ -46,12 +46,12 @@ enum class ConnectionState {
     /**
      * We've asked the client to disconnect, but it hasn't yet.
      */
-    DISCONNECT_REQUESTED,
+//    DISCONNECT_REQUESTED,
 
     /**
      * Disconnected
      */
-    DISCONNECTED;
+    BACKEND_SERVER_DISCONNECTED;
 
 //    private final boolean partOfConnectionFlow;
 //
@@ -78,10 +78,10 @@ enum class ConnectionState {
      * Indicates whether this ConnectionState is no longer waiting for messages and is either in the process of disconnecting
      * or is already disconnected.
      *
-     * @return true if the connection state is {@link #DISCONNECT_REQUESTED} or {@link #DISCONNECTED}, otherwise false
+     * @return true if the connection state is {@link #DISCONNECT_REQUESTED} or {@link #BACKEND_SERVER_DISCONNECTED}, otherwise false
      */
 //    fun isDisconnectingOrDisconnected():Boolean {
-//        return this == DISCONNECT_REQUESTED || this == DISCONNECTED;
+//        return this == DISCONNECT_REQUESTED || this == BACKEND_SERVER_DISCONNECTED;
 //    }
 //
 //    fun isPartOfConnectionFlow(): Boolean {

@@ -33,8 +33,10 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
+        log.debug("{} channelInactive", ctx.channel())
         clientToProxyConnection.disconnect()
     }
+
 
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         clientToProxyConnection.disconnect()
@@ -71,10 +73,9 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         channel.writeAndFlush(msg).addListener({
             if (it.isSuccess) {
                 // was able to flush out data, start to read the next chunk
-                clientToProxyConnection.resumeRead()
+//                clientToProxyConnection.resumeRead()
             } else {
                 exceptionOccur(it.cause())
-                disconnect()
             }
         })
     }

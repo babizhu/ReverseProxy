@@ -69,14 +69,14 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
                 // the logs with stack traces for these expected exceptions, log the message at the INFO level and the
                 // stack trace at the DEBUG level.
                 log.info("An IOException occurred on {}: {}", this::class.java.name, cause.message)
-                log.debug("An IOException occurred on " + this::class.java.name, cause)
             }
             is RejectedExecutionException -> {
                 log.info("An executor rejected a read or write operation on the " + this::class.java.name + " (this is normal if the proxy is shutting down). Message: ", cause.message)
                 log.debug("A RejectedExecutionException occurred on " + this::class.java.name, cause)
             }
-            else -> log.error("Caught an exception on " + this::class.java.name, cause)
+            else -> log.error("Caught an exception on {} : {}" , this::class.java.name, cause)
         }
+        disconnect()
     }
 //        finally {
 //
@@ -86,6 +86,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
 //    }
 
     protected fun releaseHttpContent(msg: Any) {
+
         ReferenceCountUtil.release(msg)
     }
 
