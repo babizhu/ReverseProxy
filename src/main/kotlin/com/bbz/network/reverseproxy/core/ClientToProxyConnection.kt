@@ -1,6 +1,7 @@
 package com.bbz.network.reverseproxy.core
 
 import com.bbz.network.reverseproxy.utils.ProxyUtils
+import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.EventLoop
 import io.netty.handler.codec.http.*
@@ -42,6 +43,11 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
         when (state) {
             ConnectionState.ESTABLISHED -> {
                 proxyToServerConnection!!.writeToServer(msg as HttpObject)
+                if (msg is HttpContent) {
+                    if (msg.content().refCnt() != 0) {
+                        throw Exception("{} refCnt() != 0")
+                    }
+                }
             }
 //            ConnectionState.DISCONNECT_REQUESTED -> {
 //                /**
@@ -76,7 +82,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     override fun disconnect() {
 //        state = ConnectionState.DISCONNECT_REQUESTED
 
-        log.debug("disconnect:{}",channel)
+        log.debug("disconnect:{}", channel)
         super.disconnect()
     }
 
@@ -84,7 +90,10 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
         log.debug("{} channelInactive", ctx.channel())
         waitToWriteHttpContent?.let {
-            releaseHttpContent(it)
+            val byteBuf = it.content()
+            if (byteBuf.refCnt() != 0 && byteBuf != Unpooled.EMPTY_BUFFER) {
+                releaseHttpContent(it)
+            }
         }
         proxyToServerConnection?.disconnect()
     }
@@ -132,7 +141,10 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
         proxyToServerConnection!!.writeToServer(currentRequest!!)
         waitToWriteHttpContent?.let {
             proxyToServerConnection!!.writeToServer(it)
-            waitToWriteHttpContent = null//以免disconnect的时候执行错误的release
+            if (it.content().refCnt() != 0 && it.content() != Unpooled.EMPTY_BUFFER) {
+                throw Exception("{} refCnt() != 0")
+            }
+//            waitToWriteHttpContent = null//以免disconnect的时候执行错误的release
         }
 
     }
