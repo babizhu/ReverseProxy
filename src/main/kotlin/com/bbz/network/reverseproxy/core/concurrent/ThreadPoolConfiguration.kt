@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.core
+package com.bbz.network.reverseproxy.core.concurrent
 
 import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
 
@@ -12,10 +12,10 @@ class ThreadPoolConfiguration {
 
     /**
      * Set the number of client-to-proxy worker threads to create. Worker threads perform the actual processing of
-     * client requests. The default value is [DefaultThreadPoolConfig.ACCEPTOR_THREAD_NUM].
+     * client requests. The default value is [DefaultThreadPoolConfig.WORKER_THREAD_NUM].
      *
      * @param workThreadsNum number of client-to-proxy worker threads to create
-     * @return this thread pool configuration instance, for chaining
+     * @return this concurrent pool configuration instance, for chaining
      */
     fun withWorkerThreadsNum(workThreadsNum: Int): ThreadPoolConfiguration {
         this.workerThreadsNum = workThreadsNum
@@ -32,7 +32,7 @@ class ThreadPoolConfiguration {
      * [DefaultThreadPoolConfig.ACCEPTOR_THREAD_NUM].
      *
      * @param acceptorThreadsNum number of acceptor threads to create
-     * @return this thread pool configuration instance, for chaining
+     * @return this concurrent pool configuration instance, for chaining
      */
     fun withAcceptorThreadsNum(acceptorThreadsNum: Int): ThreadPoolConfiguration {
         this.acceptorThreadsNum = acceptorThreadsNum

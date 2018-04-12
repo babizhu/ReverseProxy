@@ -1,14 +1,47 @@
 package com.bbz.network.reverseproxy.core
 
+import com.bbz.network.reverseproxy.utils.SocketClientUtil
+import io.netty.bootstrap.Bootstrap
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
+import io.netty.channel.*
+import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.socket.SocketChannel
+import io.netty.channel.socket.nio.NioSocketChannel
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
-class ClientToProxyConnectionTest {
+
+class ClientToProxyConnectionTest : AbstractProxyTest() {
+    val count = AtomicInteger(0)
+    override fun setUp() {
+        proxyServer = super.bootstrapProxy().start()
+    }
+
 
     /**
      * 1、测试http请求解析失败的情况（模拟浏览器乱发请求包）
      */
     @Test
-    fun writeToClient() {
+    fun decodeFailueTest() {
+
+        var eventLoopGroup = NioEventLoopGroup()
+        repeat(10000) {
+            var buffer = Unpooled.copiedBuffer("反倒是 / http 1.1\r\n\r\n".toByteArray())
+            connectAndWrite(buffer, eventLoopGroup)
+        }
+        Thread.sleep(10000000)
+    }
+
+    @Test
+    fun decodeFailueTest1() {
+        val socketToProxyServer = SocketClientUtil.getSocketToProxyServer(proxyServer!!)
+        repeat(5) {
+            SocketClientUtil.writeStringToSocket("abcddfsdfsdfsdfdsfse\r", socketToProxyServer)
+        }
+        val string = SocketClientUtil.readStringFromSocket(socketToProxyServer)
+        println(string)
+
     }
 
     /**
@@ -73,4 +106,42 @@ class ClientToProxyConnectionTest {
     fun backendServer500Error() {
 
     }
+
+    private fun connectAndWrite(buffer: ByteBuf, eventLoopGroup: NioEventLoopGroup) {
+        val b = Bootstrap()
+        b.group(eventLoopGroup)
+                .channel(NioSocketChannel::class.java)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+                .handler(object : ChannelInitializer<SocketChannel>() {
+                    override fun initChannel(ch: SocketChannel) {
+                        ch.pipeline().addLast(object : ChannelInboundHandlerAdapter() {
+                            override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+                                cause.printStackTrace()
+                            }
+
+                            override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+                                val buf = msg as ByteBuf
+                                try {
+                                    // println("${count.getAndIncrement()}:${buf.toString(Charset.defaultCharset())}")
+                                    println("${count.getAndIncrement()}")
+                                    ctx.close()
+                                } finally {
+                                    buf.release()
+                                }
+                            }
+                        })
+                    }
+                })
+        val address = proxyServer!!.getListenAddress()
+        b.connect(address).addListener(object : ChannelFutureListener {
+            override fun operationComplete(future: ChannelFuture) {
+                if (future.isSuccess) {
+                    val channel = future.channel()
+                    channel.writeAndFlush(buffer)
+                }
+            }
+
+        })
+    }
+
 }

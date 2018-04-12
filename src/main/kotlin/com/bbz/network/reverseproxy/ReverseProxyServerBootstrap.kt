@@ -1,6 +1,7 @@
 package com.bbz.network.reverseproxy
 
-import com.bbz.network.reverseproxy.core.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.core.concurrent.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.core.filter.HttpFilter
 import com.bbz.network.reverseproxy.route.RoutePolicy
 import java.net.InetSocketAddress
 
@@ -295,7 +296,7 @@ interface ReverseProxyServerBootstrap {
      * This is useful when the proxy is acting as a gateway/reverse proxy. **Note:** This feature should not be
      * enabled when running as a forward proxy; doing so may cause an infinite loop if the client requests the URI of the proxy.
      *
-     * @param allowRequestToOriginServer when true, the proxy will accept origin-form HTTP requests
+//     * @param allowRequestToOriginServer when true, the proxy will accept origin-form HTTP requests
      */
 //    fun withAllowRequestToOriginServer(allowRequestToOriginServer: Boolean): ReverseProxyServerBootstrap
 
@@ -307,6 +308,7 @@ interface ReverseProxyServerBootstrap {
      */
     fun withProxyAlias(alias: String): ReverseProxyServerBootstrap
 
+    fun withHttpFilter(httpFilter: HttpFilter):ReverseProxyServerBootstrap
     /**
      *
      *
@@ -318,9 +320,9 @@ interface ReverseProxyServerBootstrap {
     fun start(): ReverseProxyServer
 
     /**
-     * Set the configuration parameters for the proxy's thread pools.
+     * Set the configuration parameters for the proxy's concurrent pools.
      *
-     * @param threadPoolConfiguration thread pool configuration
+     * @param threadPoolConfiguration concurrent pool configuration
      * @return proxy server bootstrap for chaining
      */
     fun withThreadPoolConfiguration(threadPoolConfiguration: ThreadPoolConfiguration): ReverseProxyServerBootstrap

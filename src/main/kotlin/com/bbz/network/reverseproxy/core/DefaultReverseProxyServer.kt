@@ -5,6 +5,9 @@ import com.bbz.network.reverseproxy.ReverseProxyServerBootstrap
 import com.bbz.network.reverseproxy.config.DefaultNetWorkConfig
 import com.bbz.network.reverseproxy.config.DefaultServerConfig
 import com.bbz.network.reverseproxy.config.DefaultThreadPoolConfig
+import com.bbz.network.reverseproxy.core.concurrent.ServerGroup
+import com.bbz.network.reverseproxy.core.concurrent.ThreadPoolConfiguration
+import com.bbz.network.reverseproxy.core.filter.HttpFilter
 import com.bbz.network.reverseproxy.route.RoutePolicy
 import com.bbz.network.reverseproxy.route.impl.RoundRobinPolicy
 import com.bbz.network.reverseproxy.utils.ProxyUtils
@@ -18,11 +21,12 @@ import io.netty.handler.traffic.GlobalTrafficShapingHandler
 import io.netty.util.concurrent.GlobalEventExecutor
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("unused")
 class DefaultReverseProxyServer private constructor(private val serverGroup: ServerGroup,
-                                                    private val listenAddress: InetSocketAddress,
+                                                    private var listenAddress: InetSocketAddress,
                                                     private var idleConnectionTimeout: Int,
                                                     private var connectTimeoutMs: Int,
                                                     readThrottleBytesPerSecond: Long,
@@ -31,7 +35,8 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
                                                     val maxInitialLineLength: Int,
                                                     val maxHeaderSize: Int,
                                                     val maxChunkSize: Int,
-                                                    private val routePolicy: RoutePolicy) : ReverseProxyServer {
+                                                    private val routePolicy: RoutePolicy,
+                                                    val httpFilter: HttpFilter?) : ReverseProxyServer {
 
     private val stopped = AtomicBoolean(false)
     private val allChannels = DefaultChannelGroup("Reverse-Proxy-Server", GlobalEventExecutor.INSTANCE)
@@ -70,12 +75,59 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
     }
 
     override fun stop() {
-        log.error("stop server")
+        doStop(true)
     }
 
     override fun abort() {
-        log.error("stop abort")
+        doStop(false)
 
+    }
+
+    private fun doStop(graceful: Boolean) {
+        // only stop the server if it hasn't already been stopped
+        if (stopped.compareAndSet(false, true)) {
+            if (graceful) {
+                log.info("Shutting down proxy server gracefully")
+            } else {
+                log.info("Shutting down proxy server immediately (non-graceful)")
+            }
+
+            closeAllChannels(graceful)
+            serverGroup.unregisteProxyServer(this, graceful)
+
+            // remove the shutdown hook that was added when the proxy was started, since it has now been stopped
+            try {
+                Runtime.getRuntime().removeShutdownHook(jvmShutdownHook)
+            } catch (e: IllegalStateException) {
+                // ignore -- IllegalStateException means the VM is already shutting down
+            }
+
+            log.info("Done shutting down proxy server")
+        }
+    }
+
+    private fun closeAllChannels(graceful: Boolean) {
+        log.info("Closing all channels " + if (graceful) "(graceful)" else "(non-graceful)")
+
+        val future = allChannels.close()
+
+        // if this is a graceful shutdown, log any channel closing failures. if this isn't a graceful shutdown, ignore them.
+        if (graceful) {
+            try {
+                future.await(10, TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                log.warn("Interrupted while waiting for channels to shut down gracefully.")
+            }
+
+            if (!future.isSuccess) {
+                for (cf in future) {
+                    if (!cf.isSuccess) {
+                        log.info("Unable to close channel.  Cause of failure for {} is {}", cf.channel(), cf.cause())
+                    }
+                }
+            }
+        }
     }
 
     override fun getListenAddress(): InetSocketAddress {
@@ -83,6 +135,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
     }
 
     override fun setThrottle(readThrottleBytesPerSecond: Long, writeThrottleBytesPerSecond: Long) {
+
         if (globalTrafficShapingHandler != null) {
             globalTrafficShapingHandler!!.configure(writeThrottleBytesPerSecond, readThrottleBytesPerSecond)
         } else {
@@ -158,6 +211,8 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         future.addListener({
             if (future.isSuccess) {
                 registerChannel(future.channel())
+                this.listenAddress = future.channel().localAddress() as InetSocketAddress
+
             }
         }).awaitUninterruptibly()
 
@@ -166,9 +221,9 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         if (cause != null) {
             throw RuntimeException(cause)
         }
-
-//        this.boundAddress = future.channel().localAddress() as InetSocketAddress
+        this.listenAddress = future.channel().localAddress() as InetSocketAddress
         log.info("Reverse Proxy started at address: " + this.listenAddress)
+//        this.boundAddress = future.channel().localAddress() as InetSocketAddress
 
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook)
     }
@@ -183,6 +238,8 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
     }
 
     private class DefaultReverseProxyServerBootstrap : ReverseProxyServerBootstrap {
+
+
         private var threadName = DefaultThreadPoolConfig.THREAD_NAME
         private val serverGroup: ServerGroup? = null
         private var listenAddress: InetSocketAddress? = null
@@ -208,6 +265,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
         private var maxHeaderSize = DefaultNetWorkConfig.MAX_HEADER_SIZE_DEFAULT
         private var maxChunkSize = DefaultNetWorkConfig.MAX_CHUNK_SIZE_DEFAULT
         private var threadPoolConfiguration = ThreadPoolConfiguration()
+        private var httpFilter:HttpFilter? = null
         /**
          * 路由策略，缺省采用轮训策略
          */
@@ -217,7 +275,10 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             this.threadName = name
             return this
         }
-
+        override fun withHttpFilter(httpFilter: HttpFilter):ReverseProxyServerBootstrap {
+            this.httpFilter = httpFilter
+            return this
+        }
         override fun withListenAddress(address: InetSocketAddress): ReverseProxyServerBootstrap {
             this.listenAddress = address
             return this
@@ -291,7 +352,7 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
             return DefaultReverseProxyServer(serverGroup,
                     listenAddress,
                     idleConnectionTimeout, connectTimeoutMs, readThrottleBytesPerSecond, writeThrottleBytesPerSecond,
-                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize, routePolice
+                    proxyAlias, maxInitialLineLength, maxHeaderSize, maxChunkSize, routePolice,httpFilter
             )
         }
     }

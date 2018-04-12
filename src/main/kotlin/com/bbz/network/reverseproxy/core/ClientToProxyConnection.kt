@@ -1,5 +1,7 @@
 package com.bbz.network.reverseproxy.core
 
+import com.bbz.network.reverseproxy.core.misc.ConnectionState
+import com.bbz.network.reverseproxy.core.misc.ErrorCode
 import com.bbz.network.reverseproxy.utils.ProxyUtils
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
@@ -40,9 +42,19 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
 
+        val httpObject = msg as HttpObject
+        proxyServer.httpFilter?.let {
+            var clientToProxyFilterResponse = it.clientToProxyRequest(httpObject)
+            if (clientToProxyFilterResponse != null) {
+                respondWithShortCircuitResponse(clientToProxyFilterResponse)
+                return
+            }
+        }
+
+
         when (state) {
             ConnectionState.ESTABLISHED -> {
-                proxyToServerConnection!!.writeToServer(msg as HttpObject)
+                proxyToServerConnection!!.writeToServer(httpObject)
                 if (msg is HttpContent) {
                     if (msg.content().refCnt() != 0) {
                         throw Exception("{} refCnt() != 0")
@@ -66,8 +78,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
                             writeBadGateway(ErrorCode.DECODE_FAILURE)
                             return
                         }
-                        channel.config().isAutoRead = false
-                        connectToBackendServer(msg)
+                        readHttpRequestInit(msg)
                     }
                     is HttpContent -> this.waitToWriteHttpContent = msg
                     else -> log.error("为什么达到这个状态？msg = {}", msg)
@@ -75,9 +86,17 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             }
             else -> log.error("为什么达到这个状态？msg = {}", msg)
         }
-
     }
 
+    /**
+     * 客户端连接建立后，第一次收到Http Request请求
+     */
+    private fun readHttpRequestInit(msg: HttpRequest) {
+        if (channel.config().isAutoRead) {
+            channel.config().isAutoRead = false
+        }
+        connectToBackendServer(msg)
+    }
 
     override fun disconnect() {
 //        state = ConnectionState.DISCONNECT_REQUESTED
@@ -105,11 +124,11 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
 
     fun writeToClient(msg: Any) {
-        channel.writeAndFlush(msg)//下面注释掉的代码不需要了吧，待测试
+        channel.writeAndFlush(msg)//
 //        channel.writeAndFlush(msg).addListener({
 //            if (it.isSuccess) {
 //
-////                proxyToServerConnection?.resumeRead()!!!!不需要吧，待测试
+////                proxyToServerConnection?.resumeRead()!!!!
 //            } else {
 //                exceptionOccur(it.cause())
 //                disconnect()
@@ -198,8 +217,12 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 //        }
 //
 //        return true
+//        if (!HttpUtil.isKeepAlive(httpResponse)) {///要注意各种情况下的内存泄漏
+//            disconnect()
+//        }
 
         disconnect()
+
     }
 
     /**

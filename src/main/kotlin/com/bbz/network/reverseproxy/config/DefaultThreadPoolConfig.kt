@@ -2,7 +2,7 @@ package com.bbz.network.reverseproxy.config
 
 object DefaultThreadPoolConfig {
     /**
-     * acceptor thread number
+     * acceptor concurrent number
      */
     const val ACCEPTOR_THREAD_NUM = 1
 

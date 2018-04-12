@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.core
+package com.bbz.network.reverseproxy.core.misc
 
 enum class ConnectionState {
     /**

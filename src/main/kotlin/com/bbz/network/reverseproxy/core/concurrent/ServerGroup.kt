@@ -1,4 +1,4 @@
-package com.bbz.network.reverseproxy.core
+package com.bbz.network.reverseproxy.core.concurrent
 
 import com.bbz.network.reverseproxy.ReverseProxyServer
 import io.netty.channel.EventLoopGroup
@@ -23,7 +23,7 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
 
 
     /**
-     * The ID of this server group. Forms part of the name of each thread created for this server group. Useful for
+     * The ID of this server group. Forms part of the name of each concurrent created for this server group. Useful for
      * differentiating threads when multiple proxy instances are running.
      */
     private val serverGroupId: Int
@@ -37,8 +37,8 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
 
     /**
      * Creates a new ServerGroup instance for a proxy. Threads created for this ServerGroup will have the specified
-     * ServerGroup name in the Thread name. This constructor does not actually initialize any thread pools; instead,
-     * thread pools for specific transport protocols are lazily initialized as needed.
+     * ServerGroup name in the Thread name. This constructor does not actually initialize any concurrent pools; instead,
+     * concurrent pools for specific transport protocols are lazily initialized as needed.
      *
      */
     init {
@@ -121,9 +121,6 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
         // for both TCP and UDP transport protocols.
         val allEventLoopGroups = threadPools.getAllEventLoops()
 
-
-
-
         for (group in allEventLoopGroups) {
             if (graceful) {
                 group.shutdownGracefully()
@@ -141,7 +138,6 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
 
                     log.warn("Interrupted while shutting down event loop")
                 }
-
             }
         }
 
@@ -149,9 +145,9 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
     }
 
     /**
-     * Retrieves the client-to-proxy acceptor thread pool for the specified protocol
+     * Retrieves the client-to-proxy acceptor concurrent pool for the specified protocol
      *
-     * @return the client-to-proxy acceptor thread pool
+     * @return the client-to-proxy acceptor concurrent pool
      */
     fun getAcceptorPool(): EventLoopGroup {
         return threadPools.acceptorPool
@@ -161,7 +157,7 @@ class ServerGroup(name: String, threadPoolConfiguration: ThreadPoolConfiguration
     /**
      * Retrieves the client-to-proxy worker pool for the specified protocol
      *
-     * @return the client-to-proxy worker thread pool
+     * @return the client-to-proxy worker concurrent pool
      */
     fun getWorkerPool(): EventLoopGroup {
         return threadPools.workerPool
