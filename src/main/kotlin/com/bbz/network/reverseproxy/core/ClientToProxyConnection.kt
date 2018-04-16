@@ -26,8 +26,14 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
         private val log = LoggerFactory.getLogger(ClientToProxyConnection::class.java)
     }
 
-    override fun channelRegistered(ctx: ChannelHandlerContext) {
+    override fun channelActive(ctx: ChannelHandlerContext) {
         this.channel = ctx.channel()
+        proxyServer.httpFilter?.let {
+            var clientToProxyFilterResponse = it.clientToProxyConnected(ctx)
+            if (clientToProxyFilterResponse != null) {
+                respondWithShortCircuitResponse(clientToProxyFilterResponse)
+            }
+        }
     }
 
     private fun connectToBackendServer(request: HttpRequest) {
