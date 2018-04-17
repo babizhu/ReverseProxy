@@ -29,3 +29,11 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
 bootstrap.start()
     
 ```
+
+* 采用ip hash 进行轮训
+```java
+val bootstrap = DefaultReverseProxyServer.bootstrap()
+            .withRoutePolice(IpHashPolicy())
+            .withPort(8000)
+    bootstrap.start()
+```
