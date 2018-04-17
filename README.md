@@ -42,7 +42,6 @@ bootstrap.start()
 * 根据rui进行路由
 
 ```java
-
 val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withRoutePolice(object : RoutePolicy {
                 override fun getBackendServerAddress(request: HttpRequest, channel: Channel): InetSocketAddress? {
@@ -56,5 +55,5 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withPort(8000)
             .withHttpFilter(BlackListFilter())
     bootstrap.start()
-    
+
     ```
