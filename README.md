@@ -35,5 +35,5 @@ bootstrap.start()
 val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withRoutePolice(IpHashPolicy())
             .withPort(8000)
-    bootstrap.start()
+bootstrap.start()
 ```
