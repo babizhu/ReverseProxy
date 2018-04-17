@@ -15,6 +15,6 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
                     return null
                 }
             })
-    bootstrap.start()
+bootstrap.start()
     
 ```
