@@ -19,7 +19,7 @@ object DataConverter {
      * 数组byte转int数据
      */
     fun toInt(source: ByteArray): Int {
-        return source[0].toInt() shl 24 or (source[1].toInt() and 0xFF shl 16) or (source[2].toInt() and 0xFF shl 8) or (source[3].toInt() and 0xFF)
+        return source[3].toInt() shl 24 or (source[2].toInt() and 0xFF shl 16) or (source[1].toInt() and 0xFF shl 8) or (source[0].toInt() and 0xFF)
     }
 
     /**
@@ -31,10 +31,12 @@ object DataConverter {
 
 
     /**
-     * 把点分格式的ip转换为4字节Int
+     * 把点分格式的ip转换为4字节Int,注意使用了reversed方法
+     * 把192.168.1.1转换为byte数组的时候，从人的角度192是高位，并且在数组中的index为0，
+     * 但从toInt函数的角度，高位在数组中的index应该是3，因此reversed一下
      */
     fun ipToInt(ip: String): Int {
-        return toInt(ip.split(".").map { it.toInt().toByte() }.toByteArray())
+        return toInt(ip.split(".").reversed().map { it.toInt().toByte() }.toByteArray())
     }
 
     /**
