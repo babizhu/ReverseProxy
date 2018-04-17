@@ -40,7 +40,6 @@ bootstrap.start()
 ```
 
 * 根据rui进行路由
-
 ```java
 val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withRoutePolice(object : RoutePolicy {
@@ -56,4 +55,4 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withHttpFilter(BlackListFilter())
     bootstrap.start()
 
-    ```
+```
