@@ -30,7 +30,7 @@ bootstrap.start()
     
 ```
 
-* 采用ip hash 进行轮训
+* 采用ip hash 进行轮询
 ```java
 val bootstrap = DefaultReverseProxyServer.bootstrap()
             .withRoutePolice(IpHashPolicy())
