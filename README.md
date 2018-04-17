@@ -3,6 +3,7 @@
 
 ### 用法
 
+* 修改uri
 ```java
 
 val bootstrap = DefaultReverseProxyServer.bootstrap()
@@ -15,6 +16,16 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
                     return null
                 }
             })
+bootstrap.start()
+    
+```
+
+* ip黑名单
+```java
+
+val bootstrap = DefaultReverseProxyServer.bootstrap()
+            .withPort(8000)
+            .withHttpFilter(BlackListFilter())
 bootstrap.start()
     
 ```
