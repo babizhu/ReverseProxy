@@ -20,6 +20,7 @@ interface HttpFilter {
     fun clientToProxyConnected(ctx:ChannelHandlerContext): HttpResponse?
 
 
+    fun proxyToClientResponse(httpObject: HttpObject): HttpResponse?
     /**
      * 初始化filter的相关设置
      */

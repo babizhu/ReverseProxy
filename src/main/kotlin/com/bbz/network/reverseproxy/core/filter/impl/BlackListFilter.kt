@@ -1,10 +1,14 @@
 package com.bbz.network.reverseproxy.core.filter.impl
 
+import com.bbz.network.reverseproxy.core.DefaultReverseProxyServer
 import com.bbz.network.reverseproxy.core.filter.HttpFilterAdapter
+import com.bbz.network.reverseproxy.route.RoutePolicy
 import com.bbz.network.reverseproxy.utils.DataConverter
 import com.bbz.network.reverseproxy.utils.JsonUtils
 import com.bbz.network.reverseproxy.utils.ProxyUtils
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
+import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.codec.http.HttpResponse
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpVersion
@@ -28,14 +32,29 @@ class BlackListFilter : HttpFilterAdapter() {
 
 
     override fun init() {
-//        val blackListArray: Array<String> = arrayOf("192.168.1.1", "224.156.78.12", "1.2.3.4")
-////        blackList = blackListArray.map { DataConverter.ipToInt(it) }.toHashSet()
         val config = JsonUtils("resources/ip_blacklist.json").json.getJSONArray("blacklist")
-
         for (ip in config) {
             blackList.add(DataConverter.ipToInt(ip.toString()))
         }
     }
+}
 
+fun main(args: Array<String>) {
+
+
+    val bootstrap = DefaultReverseProxyServer.bootstrap()
+            .withRoutePolice(object : RoutePolicy {
+                override fun getBackendServerAddress(request: HttpRequest, channel: Channel): InetSocketAddress? {
+
+                    return when (request.uri()) {
+                        "user" -> InetSocketAddress("user.api.com", 80)
+                        "prouduct" -> InetSocketAddress("product.api.com", 80)
+                        else -> InetSocketAddress("else.api.com", 80)
+                    }
+                }
+            })
+            .withPort(8000)
+            .withHttpFilter(BlackListFilter())
+    bootstrap.start()
 
 }
