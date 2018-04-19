@@ -29,6 +29,17 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+//        proxyServer.httpFilter?.let {
+//            val response = it.proxyToClientResponse(msg as HttpObject)
+//            response?.let {
+//                clientToProxyConnection.writeToClient(it)
+//                disconnect()
+//                releaseHttpContent(msg)//这里有很大问题
+//                return
+//            }
+//        }
+
+        ctx.channel().config().isAutoRead = false
         clientToProxyConnection.writeToClient(msg)
     }
 

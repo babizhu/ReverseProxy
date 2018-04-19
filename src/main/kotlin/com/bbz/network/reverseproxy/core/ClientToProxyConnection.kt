@@ -79,7 +79,6 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             ConnectionState.BACKEND_SERVER_DISCONNECTED -> {
                 when (msg) {
                     is HttpRequest -> {
-
                         if (msg.decoderResult().isFailure) {
                             writeBadGateway(ErrorCode.DECODE_FAILURE)
                             return
@@ -130,16 +129,17 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
 
     fun writeToClient(msg: Any) {
-        channel.writeAndFlush(msg)//
-//        channel.writeAndFlush(msg).addListener({
-//            if (it.isSuccess) {
-//
-////                proxyToServerConnection?.resumeRead()!!!!
-//            } else {
-//                exceptionOccur(it.cause())
-//                disconnect()
-//            }
-//        })
+
+//        channel.writeAndFlush(msg)//
+        channel.writeAndFlush(msg).addListener({
+            if (it.isSuccess) {
+
+                proxyToServerConnection?.resumeRead()
+            } else {
+                exceptionOccur(it.cause())
+                disconnect()
+            }
+        })
     }
 
     fun eventloop(): EventLoop {
@@ -192,7 +192,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     /**
      * 直接响应客户端，通常是报500错，完成之后主动关闭连接
      */
-    private fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
+     fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
         // we are sending a response to the client, so we are done handling this request
         this.currentRequest = null
 //        state = ConnectionState.DISCONNECT_REQUESTED
