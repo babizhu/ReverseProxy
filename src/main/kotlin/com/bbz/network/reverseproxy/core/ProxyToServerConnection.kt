@@ -39,7 +39,6 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
 //            }
 //        }
 
-        ctx.channel().config().isAutoRead = false
         clientToProxyConnection.writeToClient(msg)
     }
 
@@ -59,6 +58,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
         b.group(clientToProxyConnection.eventloop())
                 .channel(NioSocketChannel::class.java)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServer.getConnectTimeoutMs())
+                .option(ChannelOption.AUTO_READ,false)
                 .handler(object : ChannelInitializer<SocketChannel>() {
                     override fun initChannel(ch: SocketChannel) {
                         ch.pipeline().addLast("codec", HttpClientCodec())
@@ -71,6 +71,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 })
         b.connect(backendServerAddress).addListener({
             if (it.isSuccess) {
+                resumeRead()
                 clientToProxyConnection.serverConnectionSucceeded()
             } else {
                 clientToProxyConnection.serverConnectionFailed(it.cause())

@@ -200,7 +200,6 @@ class DefaultReverseProxyServer private constructor(private val serverGroup: Ser
 //                .option(ChannelOption.SO_SNDBUF, 10 * 1024)
                 .option(EpollChannelOption.SO_REUSEPORT, true)
 //                .childOption(ChannelOption.AUTO_READ,false)
-                .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
 //                .childHandler(initializer)
