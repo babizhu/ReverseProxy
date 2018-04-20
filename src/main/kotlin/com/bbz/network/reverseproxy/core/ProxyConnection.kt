@@ -90,6 +90,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
         ReferenceCountUtil.release(msg)
     }
 
+    @Suppress("unused")
     protected fun stopAutoReading() {
         log.debug("Stopped reading")
         this.channel.config().isAutoRead = false

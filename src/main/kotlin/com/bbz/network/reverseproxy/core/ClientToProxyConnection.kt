@@ -29,8 +29,8 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     override fun channelActive(ctx: ChannelHandlerContext) {
         this.channel = ctx.channel()
         proxyServer.httpFilter?.let {
-            var clientToProxyFilterResponse = it.clientToProxyConnected(ctx)
-            if (clientToProxyFilterResponse != null) {
+            val clientToProxyFilterResponse = it.clientToProxyConnected(ctx)
+            clientToProxyFilterResponse?.let {
                 respondWithShortCircuitResponse(clientToProxyFilterResponse)
             }
         }
@@ -50,8 +50,8 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
         val httpObject = msg as HttpObject
         proxyServer.httpFilter?.let {
-            var clientToProxyFilterResponse = it.clientToProxyRequest(httpObject)
-            if (clientToProxyFilterResponse != null) {
+            val clientToProxyFilterResponse = it.clientToProxyRequest(httpObject)
+            clientToProxyFilterResponse?.let {
                 respondWithShortCircuitResponse(clientToProxyFilterResponse)
                 return
             }
@@ -192,7 +192,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     /**
      * 直接响应客户端，通常是报500错，完成之后主动关闭连接
      */
-     fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
+    fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
         // we are sending a response to the client, so we are done handling this request
         this.currentRequest = null
 //        state = ConnectionState.DISCONNECT_REQUESTED
