@@ -62,7 +62,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             ConnectionState.ESTABLISHED -> {
                 proxyToServerConnection!!.writeToServer(httpObject)
                 if (msg is HttpContent) {
-                    if (msg.content().refCnt() != 0) {
+                    if (msg.content().refCnt() != 0 && msg.content() != Unpooled.EMPTY_BUFFER) {
                         throw Exception("{} refCnt() != 0")
                     }
                 }
