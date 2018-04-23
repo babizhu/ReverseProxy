@@ -53,7 +53,6 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {
         try {
             if (evt is IdleStateEvent) {
-
                 timedOut()
             }
         } finally {
@@ -62,7 +61,6 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
     }
 
     protected open fun exceptionOccur(cause: Throwable) {
-//        try {
         when (cause) {
             is IOException -> {
                 // IOExceptions are expected errors, for example when a server drops the connection. rather than flood
@@ -78,15 +76,8 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
         }
         disconnect()
     }
-//        finally {
-//
-//            log.info("Disconnecting open connection to server")
-//            disconnect()
-//        }
-//    }
 
     protected fun releaseHttpContent(msg: Any) {
-
         ReferenceCountUtil.release(msg)
     }
 
