@@ -27,11 +27,10 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
-        this.channel = ctx.channel()
         proxyServer.httpFilter?.let {
-            val clientToProxyFilterResponse = it.clientToProxyConnected(ctx)
-            clientToProxyFilterResponse?.let {
-                respondWithShortCircuitResponse(clientToProxyFilterResponse)
+            val response = it.clientToProxyConnected(ctx)
+            response?.let {
+                respondWithShortCircuitResponse(response)
             }
         }
     }
@@ -62,7 +61,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             ConnectionState.ESTABLISHED -> {
                 proxyToServerConnection!!.writeToServer(httpObject)
                 if (msg is HttpContent) {
-                    if (msg.content().refCnt() != 0) {
+                    if (msg.content().refCnt() != 0 && msg.content() != Unpooled.EMPTY_BUFFER) {
                         throw Exception("{} refCnt() != 0")
                     }
                 }
@@ -94,24 +93,20 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     /**
-     * 客户端连接建立后，第一次收到Http Request请求
+     * 客户端连接建立后，第一次收到Http Request请求，后面再收到的Http Request请求不会执行到这里
+     * 建立和backend server到连接
      */
     private fun readHttpRequestInit(msg: HttpRequest) {
-        if (channel.config().isAutoRead) {
-            channel.config().isAutoRead = false
-        }
+        channel.config().isAutoRead = false
         connectToBackendServer(msg)
     }
 
     override fun disconnect() {
-//        state = ConnectionState.DISCONNECT_REQUESTED
-
         log.debug("disconnect:{}", channel)
         super.disconnect()
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-
         log.debug("{} channelInactive", ctx.channel())
         waitToWriteHttpContent?.let {
             val byteBuf = it.content()
@@ -192,7 +187,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     /**
      * 直接响应客户端，通常是报500错，完成之后主动关闭连接
      */
-    fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
+    private fun respondWithShortCircuitResponse(httpResponse: HttpResponse) {
         // we are sending a response to the client, so we are done handling this request
         this.currentRequest = null
 //        state = ConnectionState.DISCONNECT_REQUESTED
