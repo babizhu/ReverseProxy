@@ -21,7 +21,6 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
     override fun channelRegistered(ctx: ChannelHandlerContext) {
         this.channel = ctx.channel()
         proxyServer.registerChannel(channel)
-
     }
 
     /**
