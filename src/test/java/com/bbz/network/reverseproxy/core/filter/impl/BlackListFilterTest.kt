@@ -76,25 +76,6 @@ class BlackListFilterTest {
         println(DataConverter.toInt(byteArray) + Math.abs(Int.MIN_VALUE.toLong())*2)
         println("${DataConverter.toLong(byteArray)}")
 
-        val b:Byte = -64
-        var i = b.toInt() shl 48
-        repeat(48){
-            println("${1 shl it}::${ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(DataConverter.toByteArray(1 shl it)))}")
-//        println(i)
-//
-//        println("${ByteBufUtil.hexDump(DataConverter.toByteArray(i))}")
 
-
-//        val byte:Byte = 0b11000000.toByte()
-//        println(byte)
-//        println(byte.toString(2))
-//        println(Short.MIN_VALUE)
-//        println(Short.MAX_VALUE)
-
-//
-//        println(DataConverter.toInt(byteArray))
-//        println(192.toString(2))
-//        println(ByteBufUtil.hexDump(byteArray))
-        }
     }
 }

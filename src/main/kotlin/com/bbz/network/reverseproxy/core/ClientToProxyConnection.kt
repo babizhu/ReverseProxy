@@ -46,12 +46,11 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
     }
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-
         val httpObject = msg as HttpObject
         proxyServer.httpFilter?.let {
-            val clientToProxyFilterResponse = it.clientToProxyRequest(httpObject)
-            clientToProxyFilterResponse?.let {
-                respondWithShortCircuitResponse(clientToProxyFilterResponse)
+            val response = it.clientToProxyRequest(httpObject)
+            response?.let {
+                respondWithShortCircuitResponse(response)
                 return
             }
         }
@@ -119,7 +118,7 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 
     @Suppress("OverridingDeprecatedMember")
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        exceptionOccur(cause)
+        exceptionOccurAndDisconnect(cause)
     }
 
 
@@ -128,11 +127,9 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
 //        channel.writeAndFlush(msg)//
         channel.writeAndFlush(msg).addListener({
             if (it.isSuccess) {
-
-                proxyToServerConnection?.resumeRead()
+                proxyToServerConnection!!.resumeRead()
             } else {
-                exceptionOccur(it.cause())
-                disconnect()
+                exceptionOccurAndDisconnect(it.cause())
             }
         })
     }
@@ -164,7 +161,6 @@ class ClientToProxyConnection(proxyServer: DefaultReverseProxyServer) : ProxyCon
             if (it.content().refCnt() != 0 && it.content() != Unpooled.EMPTY_BUFFER) {
                 throw Exception("{} refCnt() != 0")
             }
-//            waitToWriteHttpContent = null//以免disconnect的时候执行错误的release
         }
 
     }

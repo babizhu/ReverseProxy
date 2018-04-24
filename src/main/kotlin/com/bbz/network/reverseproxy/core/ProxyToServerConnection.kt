@@ -87,7 +87,7 @@ class ProxyToServerConnection(proxyServer: DefaultReverseProxyServer,
                 // was able to flush out data, start to read the next chunk
                 clientToProxyConnection.resumeRead()
             } else {
-                exceptionOccur(it.cause())
+                exceptionOccurAndDisconnect(it.cause())
             }
         })
     }

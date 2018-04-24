@@ -59,7 +59,7 @@ abstract class ProxyConnection(protected val proxyServer: DefaultReverseProxySer
         }
     }
 
-    protected open fun exceptionOccur(cause: Throwable) {
+    protected open fun exceptionOccurAndDisconnect(cause: Throwable) {
         when (cause) {
             is IOException -> {
                 // IOExceptions are expected errors, for example when a server drops the connection. rather than flood
