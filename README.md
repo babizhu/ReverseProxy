@@ -56,3 +56,6 @@ val bootstrap = DefaultReverseProxyServer.bootstrap()
     bootstrap.start()
 
 ```
+
+### 性能
+[请点击](https://github.com/babizhu/ReverseProxy/blob/master/doc/benchmark.md) .
